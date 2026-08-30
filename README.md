@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NOIRVALE Fragrances
 
-## Getting Started
+WhatsApp-first premium men's fragrance storefront.
 
-First, run the development server:
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` during local development.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Configure public values in `.env.local` or via your hosting environment.
 
-## Learn More
+Required public variables:
 
-To learn more about Next.js, take a look at the following resources:
+- `NEXT_PUBLIC_WHATSAPP_NUMBER`
+- `NEXT_PUBLIC_SITE_URL`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Optional public variables:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `NEXT_PUBLIC_PUBLIC_PHONE`
+- `NEXT_PUBLIC_BUSINESS_EMAIL`
+- `NEXT_PUBLIC_FACEBOOK_URL`
+- `NEXT_PUBLIC_INSTAGRAM_URL`
+- `NEXT_PUBLIC_PINTEREST_URL`
+- `NEXT_PUBLIC_BUSINESS_HOURS`
+- `NEXT_PUBLIC_CLOSED_DAY`
+- `NEXT_PUBLIC_BUSINESS_LOCATION`
+- `NEXT_PUBLIC_SERVICE_AREA`
+- `NEXT_PUBLIC_DELIVERY_TEXT`
 
-## Deploy on Vercel
+## WhatsApp
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+WhatsApp numbers must use international format without `+` or punctuation.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Business Configuration
+
+Centralized business settings live in:
+
+- `src/lib/config.ts`
+
+That file controls brand text, contact details, business hours, service area, delivery copy, and policy text.
+
+## Products
+
+Catalogue data is stored in:
+
+- `src/data/products.ts`
+
+Add or update fragrances there. Each product maps to its own route and WhatsApp order flow.
+
+## Images
+
+Local product imagery lives in:
+
+- `public/noirvale/products`
+
+Local collection imagery lives in:
+
+- `public/noirvale/collections`
+
+Image provenance is recorded in:
+
+- `IMAGE_SOURCES.md`
+
+## Deployment
+
+The app currently uses the local development URL as the default canonical fallback.
+When a real production URL exists, set `NEXT_PUBLIC_SITE_URL` in your deployment environment.
+
+Validation:
+
+```bash
+npm run lint
+npm run build
+```
