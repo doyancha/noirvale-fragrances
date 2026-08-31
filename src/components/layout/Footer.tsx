@@ -11,7 +11,7 @@ export function Footer() {
   return (
     <footer className="bg-[#0a0a0a] text-[#faf7f4] border-t border-white/5 pt-16 pb-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,1.3fr)] gap-10 lg:gap-8 mb-16">
 
           {/* Brand Column */}
           <div className="space-y-4">
@@ -50,11 +50,11 @@ export function Footer() {
             )}
           </div>
 
-          {/* Shop Column */}
+          {/* Company Column */}
           <div>
-            <h3 className="font-serif text-[#c9a96e] text-lg mb-6">Shop</h3>
+            <h3 className="font-serif text-[#c9a96e] text-lg mb-6">Company</h3>
             <ul className="space-y-3">
-              {siteConfig.navigation.footer.shop.map((link) => (
+              {siteConfig.navigation.footer.company.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -67,11 +67,11 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Company Column */}
+          {/* Shop Column */}
           <div>
-            <h3 className="font-serif text-[#c9a96e] text-lg mb-6">Company</h3>
+            <h3 className="font-serif text-[#c9a96e] text-lg mb-6">Shop</h3>
             <ul className="space-y-3">
-              {siteConfig.navigation.footer.company.map((link) => (
+              {siteConfig.navigation.footer.shop.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

@@ -76,7 +76,7 @@ export default async function CollectionPage({ params }: Props) {
           <span className="text-sm text-[#faf7f4]/40">{products.length} Fragrances</span>
         </div>
         {products.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 lg:[&>*:nth-child(4)]:col-start-2 lg:[&>*:nth-child(5)]:col-start-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
             {products.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}

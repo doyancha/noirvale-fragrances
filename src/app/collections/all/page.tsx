@@ -28,7 +28,7 @@ export default function CollectionsAllPage() {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 lg:[&>*:nth-child(4)]:col-start-2 lg:[&>*:nth-child(5)]:col-start-3 md:[&>*:nth-child(5)]:col-span-2 md:[&>*:nth-child(5)]:justify-self-center md:[&>*:nth-child(5)]:max-w-lg">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
           {collections.map((collection) => {
             const count = getProductsForCollection(collection.slug).length;
             return (

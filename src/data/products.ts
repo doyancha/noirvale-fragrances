@@ -120,7 +120,7 @@ export const products: Product[] = [
     style: ['Fresh', 'Modern', 'Versatile'],
     inStock: true,
     isFeatured: true,
-    isBestseller: false,
+    isBestseller: true,
     isNew: true,
   },
   {
@@ -503,6 +503,14 @@ export const collections: CollectionInfo[] = [
       'Concentrated, long-lasting compositions crafted for after-dark occasions.',
     image: '/noirvale/collections/evening-intense.webp',
     scentFamilies: ['Leather & Tobacco', 'Oud & Amber'],
+  },
+  {
+    slug: 'office-everyday',
+    name: 'Office & Everyday',
+    description:
+      'Polished, versatile compositions for the workday, the commute, and the easy transition into evening.',
+    image: '/noirvale/collections/office-everyday.webp',
+    scentFamilies: ['Fresh & Aquatic', 'Aromatic & Herbal', 'Woody & Earthy'],
   },
 ];
 
