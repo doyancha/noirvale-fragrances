@@ -30,7 +30,7 @@ All catalogue and editorial assets are local files under `public/noirvale/`. The
 | Woods & Earth | `public/noirvale/collections/woody-earthy.png` | `public/noirvale/collections/woody-earthy.webp` | Original local generated asset; WebP derivative serves the storefront |
 | Spice & Oriental | `public/noirvale/collections/spicy-oriental.png` | `public/noirvale/collections/spicy-oriental.webp` | Original local generated asset; WebP derivative serves the storefront |
 | Evening Intense | `public/noirvale/collections/evening-intense.png` | `public/noirvale/collections/evening-intense.webp` | Original local generated asset; WebP derivative serves the storefront |
-| Office & Everyday | `public/noirvale/products/azure-night/main.png` | `public/noirvale/collections/office-everyday.webp` | Derived from the Azure Night product asset to represent the office-ready collection while remaining fully local |
+| Office & Everyday | `public/noirvale/products/royal-vetiver/main.png` | `public/noirvale/products/royal-vetiver/main.webp` | Reused the Royal Vetiver optimized product asset to represent the office-ready collection while remaining fully local |
 
 ## Supporting Editorial Assets
 

@@ -509,7 +509,7 @@ export const collections: CollectionInfo[] = [
     name: 'Office & Everyday',
     description:
       'Polished, versatile compositions for the workday, the commute, and the easy transition into evening.',
-    image: '/noirvale/collections/office-everyday.webp',
+    image: '/noirvale/products/royal-vetiver/main.webp',
     scentFamilies: ['Fresh & Aquatic', 'Aromatic & Herbal', 'Woody & Earthy'],
   },
 ];
