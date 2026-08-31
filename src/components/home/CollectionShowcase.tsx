@@ -10,7 +10,7 @@ export function CollectionShowcase() {
           <div className="h-px w-24 bg-gold/50 mx-auto" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 lg:[&>*:nth-child(4)]:col-start-2 lg:[&>*:nth-child(5)]:col-start-3">
           {collections.map(collection => (
             <Link
               key={collection.slug}

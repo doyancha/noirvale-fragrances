@@ -10,13 +10,13 @@ export function AnnouncementBar() {
   if (!isVisible) return null;
 
   return (
-    <div className="bg-[#c9a96e] text-[#0a0a0a] py-2 px-4 relative z-50 flex items-center justify-center">
-      <div className="text-sm font-medium font-sans text-center px-8">
+    <div className="relative z-50 flex items-center justify-center bg-[#c9a96e] px-4 py-2 text-[#0a0a0a]">
+      <div className="px-10 text-center font-sans text-xs font-medium leading-tight sm:px-8 sm:text-sm">
         {siteConfig.business.serviceArea} • Order via WhatsApp • COD available
       </div>
       <button
         onClick={() => setIsVisible(false)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-black/10 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors hover:bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
         aria-label="Dismiss announcement"
       >
         <X size={16} />

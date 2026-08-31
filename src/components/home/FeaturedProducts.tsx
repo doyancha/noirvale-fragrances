@@ -13,7 +13,7 @@ export function FeaturedProducts() {
           <div className="h-px w-24 bg-gold/50 mx-auto" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mb-16">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 mb-16">
           {featuredProducts.map(product => (
             <ProductCard key={product.id} product={product} />
           ))}

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function CollectionsAllPage() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] pb-16 pt-24 text-[#faf7f4]">
+    <main className="min-h-screen bg-[#0a0a0a] pb-16 pt-10 text-[#faf7f4] md:pt-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <header className="mx-auto mb-16 mt-8 max-w-3xl text-center">
           <p className="mb-4 text-sm uppercase tracking-[0.3em] text-[#c9a96e]">
@@ -28,7 +28,7 @@ export default function CollectionsAllPage() {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8 lg:[&>*:nth-child(4)]:col-start-2 lg:[&>*:nth-child(5)]:col-start-3">
           {collections.map((collection) => {
             const count = getProductsForCollection(collection.slug).length;
             return (

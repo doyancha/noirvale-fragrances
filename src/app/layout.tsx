@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Inter } from 'next/font/google';
 import { siteConfig } from '@/lib/config';
-import { Header } from '@/components/layout/Header';
-import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
+import { HeaderStack } from '@/components/layout/HeaderStack';
 import { Footer } from '@/components/layout/Footer';
 import { FloatingWhatsApp } from '@/components/ui/FloatingWhatsApp';
 import './globals.css';
@@ -78,8 +77,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${serif.variable} ${sans.variable}`}>
       <body className="min-h-screen overflow-x-hidden bg-noir-950 text-ivory antialiased">
-        <AnnouncementBar />
-        <Header />
+        <HeaderStack />
         {children}
         <Footer />
         <FloatingWhatsApp />

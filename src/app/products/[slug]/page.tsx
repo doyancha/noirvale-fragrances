@@ -99,7 +99,7 @@ export default async function ProductPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <main className="bg-[#0a0a0a] pt-20">
+      <main className="bg-[#0a0a0a] pt-10 md:pt-12">
         <ProductDetail key={product.slug} product={product} siteUrl={siteConfig.seo.siteUrl} />
 
         {relatedProducts.length > 0 && (

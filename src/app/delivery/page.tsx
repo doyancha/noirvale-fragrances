@@ -10,7 +10,7 @@ export default function DeliveryPage() {
   const { delivery } = siteConfig.customerCare;
 
   return (
-    <div className="bg-[#0a0a0a] text-[#faf7f4] min-h-screen pt-24 pb-16">
+    <div className="bg-[#0a0a0a] text-[#faf7f4] min-h-screen pt-10 pb-16 md:pt-12">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <h1 className="mb-4 text-center font-serif text-4xl text-[#c9a96e] md:text-5xl">
           Delivery Information

@@ -51,7 +51,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "fixed top-0 inset-x-0 z-40 transition-colors duration-300",
+        "relative z-40 w-full transition-colors duration-300",
         isScrolled || isMobileMenuOpen ? "bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/5" : "bg-transparent"
       )}
     >
@@ -114,9 +114,10 @@ export function Header() {
       {/* Mobile Menu Overlay */}
       <div
         className={cn(
-          "fixed inset-0 top-20 bg-[#0a0a0a] z-30 lg:hidden transition-all duration-300 ease-in-out overflow-y-auto",
+          "fixed inset-x-0 bottom-0 bg-[#0a0a0a] z-30 lg:hidden transition-all duration-300 ease-in-out overflow-y-auto",
           isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
         )}
+        style={{ top: 'var(--noirvale-header-stack-height, 0px)' }}
       >
         <div className="flex flex-col h-full p-6">
           <nav className="flex flex-col space-y-6 flex-grow">

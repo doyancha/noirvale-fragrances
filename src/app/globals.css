@@ -37,6 +37,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: var(--noirvale-header-stack-height, 0px);
 }
 
 @media (prefers-reduced-motion: reduce) {
