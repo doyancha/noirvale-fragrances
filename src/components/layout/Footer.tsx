@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Phone, Mail, Clock, MapPin, ArrowUpRight } from 'lucide-react';
 import { siteConfig } from '@/lib/config';
 
@@ -15,9 +16,20 @@ export function Footer() {
 
           {/* Brand Column */}
           <div className="space-y-4">
-            <h2 className="text-2xl font-serif font-bold text-[#faf7f4] tracking-widest">
-              {siteConfig.brand.shortName}
-            </h2>
+            <Link
+              href="/"
+              aria-label={siteConfig.brand.displayName}
+              className="inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e] rounded-sm"
+            >
+              <Image
+                src="/noirvale/branding/logo-header.png"
+                alt=""
+                width={785}
+                height={256}
+                sizes="(min-width: 768px) 132px, 118px"
+                className="h-9 w-auto sm:h-10 md:h-11"
+              />
+            </Link>
             <p className="text-[#faf7f4]/70 font-sans text-sm leading-relaxed max-w-sm">
               {siteConfig.brand.description}
             </p>

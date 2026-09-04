@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X, MessageCircle, Search } from 'lucide-react';
 import { siteConfig } from '@/lib/config';
@@ -69,9 +70,18 @@ export function Header() {
         {/* Logo */}
         <Link
           href="/"
-          className="text-2xl font-serif font-bold text-[#faf7f4] tracking-widest absolute left-1/2 -translate-x-1/2 lg:static lg:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e] rounded-sm px-1"
+          aria-label={siteConfig.brand.displayName}
+          className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e] rounded-sm lg:static lg:translate-x-0 lg:translate-y-0"
         >
-          {siteConfig.brand.shortName}
+          <Image
+            src="/noirvale/branding/logo-header.png"
+            alt=""
+            width={785}
+            height={256}
+            priority
+            sizes="(min-width: 1024px) 122px, (min-width: 640px) 110px, 98px"
+            className="h-8 w-auto sm:h-9 lg:h-10"
+          />
         </Link>
 
         {/* Desktop Navigation */}
