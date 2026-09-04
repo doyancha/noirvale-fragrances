@@ -74,13 +74,13 @@ export function Header() {
           className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e] rounded-sm lg:static lg:translate-x-0 lg:translate-y-0"
         >
           <Image
-            src="/noirvale/branding/logo-header.png"
+            src="/noirvale/branding/logo-primary.png"
             alt=""
-            width={785}
-            height={256}
+            width={2172}
+            height={724}
             priority
-            sizes="(min-width: 1024px) 122px, (min-width: 640px) 110px, 98px"
-            className="h-8 w-auto sm:h-9 lg:h-10"
+            sizes="(min-width: 1280px) 144px, (min-width: 1024px) 136px, (min-width: 640px) 124px, 112px"
+            className="h-10 w-auto object-contain sm:h-11 lg:h-12"
           />
         </Link>
 

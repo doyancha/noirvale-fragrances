@@ -23,12 +23,12 @@ export function Footer() {
               className="inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e] rounded-sm"
             >
               <Image
-                src="/noirvale/branding/logo-header.png"
+                src="/noirvale/branding/logo-primary.png"
                 alt=""
-                width={785}
-                height={256}
-                sizes="(min-width: 768px) 132px, 118px"
-                className="h-9 w-auto sm:h-10 md:h-11"
+                width={2172}
+                height={724}
+                sizes="(min-width: 768px) 172px, 148px"
+                className="h-11 w-auto object-contain sm:h-12 md:h-14"
               />
             </Link>
             <p className="text-[#faf7f4]/70 font-sans text-sm leading-relaxed max-w-sm">
