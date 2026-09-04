@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Mail, Clock, MapPin, ArrowUpRight } from 'lucide-react';
+import { Phone, Mail, Clock, MapPin } from 'lucide-react';
 import { siteConfig } from '@/lib/config';
+import { FacebookIcon, InstagramIcon, PinterestIcon } from '@/components/ui/PlatformIcons';
 
 export function Footer() {
   const hasBusinessDetails =
@@ -33,28 +34,50 @@ export function Footer() {
             <p className="text-[#faf7f4]/70 font-sans text-sm leading-relaxed max-w-sm">
               {siteConfig.brand.description}
             </p>
-            <div className="flex flex-wrap gap-3 pt-2">
-              {siteConfig.social.facebook && (
-                <a
-                  href={siteConfig.social.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[#faf7f4]/70 hover:text-[#c9a96e] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e] rounded-sm"
-                >
-                  Facebook <ArrowUpRight size={14} />
-                </a>
-              )}
-              {siteConfig.social.instagram && (
-                <a
-                  href={siteConfig.social.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[#faf7f4]/70 hover:text-[#c9a96e] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e] rounded-sm"
-                >
-                  Instagram <ArrowUpRight size={14} />
-                </a>
-              )}
+            <div className="pt-2">
+              <h3 className="font-serif text-[#c9a96e] text-lg mb-4">Social</h3>
+              <div className="flex flex-wrap gap-3">
+                {siteConfig.social.facebook && (
+                  <a
+                    href={siteConfig.social.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Facebook"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-[#faf7f4]/75 transition-colors hover:border-[#c9a96e]/40 hover:text-[#faf7f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e]"
+                  >
+                    <FacebookIcon className="h-4 w-4 text-[#faf7f4]/80" />
+                    <span>Facebook</span>
+                  </a>
+                )}
+                {siteConfig.social.instagram && (
+                  <a
+                    href={siteConfig.social.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-[#faf7f4]/75 transition-colors hover:border-[#c9a96e]/40 hover:text-[#faf7f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e]"
+                  >
+                    <InstagramIcon className="h-4 w-4 text-[#faf7f4]/80" />
+                    <span>Instagram</span>
+                  </a>
+                )}
+                {siteConfig.social.pinterest && (
+                  <a
+                    href={siteConfig.social.pinterest}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Pinterest"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-[#faf7f4]/75 transition-colors hover:border-[#c9a96e]/40 hover:text-[#faf7f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e]"
+                  >
+                    <PinterestIcon className="h-4 w-4 text-[#faf7f4]/80" />
+                    <span>Pinterest</span>
+                  </a>
+                )}
+              </div>
             </div>
+            <p className="max-w-sm text-[11px] leading-relaxed text-[#faf7f4]/35">
+              Demo storefront - contact and social details are placeholders.
+            </p>
             {!hasBusinessDetails && (
               <p className="max-w-sm text-xs leading-relaxed text-[#faf7f4]/45">
                 Direct business contact details are published once they are configured.

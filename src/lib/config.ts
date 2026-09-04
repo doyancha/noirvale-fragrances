@@ -8,11 +8,19 @@ const optionalEnv = (value: string | undefined) => {
   return trimmed ? trimmed : undefined;
 };
 
-const defaultSiteUrl = optionalEnv(process.env.NEXT_PUBLIC_SITE_URL) ?? 'http://localhost:3000';
+const defaultSiteUrl =
+  optionalEnv(process.env.NEXT_PUBLIC_SITE_URL) ??
+  'https://noirvale-fragrances-store.vercel.app';
 const defaultWhatsAppNumber =
-  optionalEnv(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER) ?? '88017XXXXXXXX';
+  optionalEnv(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER) ?? '8801XXXXXXXXX';
 const defaultPhone = optionalEnv(process.env.NEXT_PUBLIC_PUBLIC_PHONE) ?? defaultWhatsAppNumber;
 const defaultEmail = optionalEnv(process.env.NEXT_PUBLIC_BUSINESS_EMAIL) ?? 'contact@yourdomain.com';
+const defaultFacebookUrl =
+  optionalEnv(process.env.NEXT_PUBLIC_FACEBOOK_URL) ?? 'https://www.facebook.com/login/';
+const defaultInstagramUrl =
+  optionalEnv(process.env.NEXT_PUBLIC_INSTAGRAM_URL) ?? 'https://www.instagram.com/accounts/login/';
+const defaultPinterestUrl =
+  optionalEnv(process.env.NEXT_PUBLIC_PINTEREST_URL) ?? 'https://www.pinterest.com/login/';
 const defaultHours =
   optionalEnv(process.env.NEXT_PUBLIC_BUSINESS_HOURS) ?? 'Saturday–Thursday, 10:00 AM–8:00 PM';
 const defaultServiceArea =
@@ -41,9 +49,9 @@ export const siteConfig = {
   },
 
   social: {
-    facebook: optionalEnv(process.env.NEXT_PUBLIC_FACEBOOK_URL),
-    instagram: optionalEnv(process.env.NEXT_PUBLIC_INSTAGRAM_URL),
-    pinterest: optionalEnv(process.env.NEXT_PUBLIC_PINTEREST_URL),
+    facebook: defaultFacebookUrl,
+    instagram: defaultInstagramUrl,
+    pinterest: defaultPinterestUrl,
   },
 
   business: {

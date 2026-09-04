@@ -19,13 +19,8 @@ export default function HomePage() {
           contactType: 'customer service',
           ...(siteConfig.contact.email ? { email: siteConfig.contact.email } : {}),
           ...(siteConfig.contact.phone ? { telephone: siteConfig.contact.phone } : {}),
-        }
+      }
       : undefined;
-  const sameAs = [
-    siteConfig.social.facebook,
-    siteConfig.social.instagram,
-    siteConfig.social.pinterest,
-  ].filter(Boolean);
 
   return (
     <>
@@ -53,7 +48,6 @@ export default function HomePage() {
             description: siteConfig.brand.description,
             ...(hasSiteUrl ? { url: siteConfig.seo.siteUrl } : {}),
             ...(contactPoint ? { contactPoint } : {}),
-            ...(sameAs.length ? { sameAs } : {}),
           }),
         }}
       />
