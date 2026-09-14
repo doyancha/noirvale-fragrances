@@ -1,8 +1,24 @@
 from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.db.models import Count
+from django.forms.models import BaseInlineFormSet
 
 from .forms import ProductAdminForm
 from .models import Collection, CollectionProduct, Product, ProductVariant
+
+
+class PublicCollectionMembershipFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        seen = set()
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data") or not form.cleaned_data or form.cleaned_data.get("DELETE"):
+                continue
+            collection = form.cleaned_data.get("collection")
+            if collection and collection.pk in seen:
+                raise ValidationError("A product can appear only once in each public collection.")
+            if collection:
+                seen.add(collection.pk)
 
 
 @admin.register(Product)
@@ -167,6 +183,7 @@ class PublicCollectionInline(admin.TabularInline):
     ordering = ("sort_order", "id")
     fields = ("collection", "sort_order")
     autocomplete_fields = ("collection",)
+    formset = PublicCollectionMembershipFormSet
     verbose_name = "Public Collection"
     verbose_name_plural = "Public Collections"
 

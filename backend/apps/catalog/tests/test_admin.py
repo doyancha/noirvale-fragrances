@@ -152,6 +152,30 @@ class CatalogAdminTests(AdminTestDataMixin, TestCase):
         membership = CollectionProduct.objects.get(product=product, collection=collection)
         self.assertEqual(membership.sort_order, 3)
 
+    def test_duplicate_public_membership_is_a_formset_validation_error(self):
+        product = self.make_product()
+        collection = self.make_collection()
+        membership = CollectionProduct.objects.create(product=product, collection=collection)
+        inline = PublicCollectionInline(Product, admin.site)
+        formset_class = inline.get_formset(self.request, product)
+        formset = formset_class(
+            data={
+                "collectionproduct_set-TOTAL_FORMS": "2",
+                "collectionproduct_set-INITIAL_FORMS": "1",
+                "collectionproduct_set-MIN_NUM_FORMS": "0",
+                "collectionproduct_set-MAX_NUM_FORMS": "1000",
+                "collectionproduct_set-0-id": str(membership.pk),
+                "collectionproduct_set-0-collection": str(collection.pk),
+                "collectionproduct_set-0-sort_order": "0",
+                "collectionproduct_set-1-collection": str(collection.pk),
+                "collectionproduct_set-1-sort_order": "1",
+            },
+            instance=product,
+        )
+
+        self.assertFalse(formset.is_valid())
+        self.assertIn("duplicate", str(formset.errors).lower() + str(formset.non_form_errors()).lower())
+
     def test_collection_admin_pages_and_configuration_work(self):
         collection = self.make_collection()
         self.assertEqual(self.client.get(reverse("admin:catalog_collection_changelist")).status_code, 200)
