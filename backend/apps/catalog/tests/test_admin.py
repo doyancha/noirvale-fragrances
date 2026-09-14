@@ -5,7 +5,12 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import RequestFactory, TestCase
 
-from apps.catalog.admin import CollectionMembershipInline, ProductAdmin, PublicCollectionInline, ProductVariantInline
+from apps.catalog.admin import (
+    CollectionMembershipInline,
+    ProductAdmin,
+    PublicCollectionInline,
+    ProductVariantInline,
+)
 from apps.catalog.forms import ProductAdminForm
 from apps.catalog.models import Collection, CollectionProduct, Product, ProductVariant
 
@@ -130,6 +135,57 @@ class CatalogAdminTests(AdminTestDataMixin, TestCase):
         formset.save()
         self.assertEqual(product.variants.count(), 1)
 
+    def variant_formset(self, product, rows):
+        inline = ProductVariantInline(Product, admin.site)
+        formset_class = inline.get_formset(self.request, product)
+        data = {
+            "variants-TOTAL_FORMS": str(len(rows)),
+            "variants-INITIAL_FORMS": "0",
+            "variants-MIN_NUM_FORMS": "0",
+            "variants-MAX_NUM_FORMS": "1000",
+        }
+        for index, row in enumerate(rows):
+            data.update(
+                {
+                    f"variants-{index}-label": row.get("label", "50ml"),
+                    f"variants-{index}-ml": row.get("ml", "50"),
+                    f"variants-{index}-price": row.get("price", "100.00"),
+                    f"variants-{index}-compare_at_price": row.get("compare_at_price", ""),
+                    f"variants-{index}-in_stock": "on",
+                    f"variants-{index}-is_active": "on",
+                    f"variants-{index}-sort_order": str(index),
+                }
+            )
+        return formset_class(data=data, instance=product)
+
+    def test_variant_inline_rejects_zero_milliliters(self):
+        formset = self.variant_formset(self.make_product(), [{"ml": "0"}])
+
+        self.assertFalse(formset.is_valid())
+        self.assertIn("greater than or equal to 1", str(formset.errors))
+
+    def test_variant_inline_rejects_negative_price(self):
+        formset = self.variant_formset(self.make_product(), [{"price": "-0.01"}])
+
+        self.assertFalse(formset.is_valid())
+        self.assertIn("greater than or equal to 0", str(formset.errors))
+
+    def test_variant_inline_rejects_compare_at_price_below_price(self):
+        formset = self.variant_formset(
+            self.make_product(), [{"price": "100.00", "compare_at_price": "90.00"}]
+        )
+
+        self.assertFalse(formset.is_valid())
+        self.assertIn("constraint", str(formset.errors).lower())
+
+    def test_variant_inline_rejects_duplicate_labels(self):
+        formset = self.variant_formset(
+            self.make_product(), [{"label": "50ml"}, {"label": "50ml"}]
+        )
+
+        self.assertFalse(formset.is_valid())
+        self.assertIn("duplicate", str(formset.errors).lower() + str(formset.non_form_errors()).lower())
+
     def test_collection_membership_inline_saves_and_orders(self):
         product = self.make_product()
         collection = self.make_collection()
@@ -151,6 +207,28 @@ class CatalogAdminTests(AdminTestDataMixin, TestCase):
         formset.save()
         membership = CollectionProduct.objects.get(product=product, collection=collection)
         self.assertEqual(membership.sort_order, 3)
+
+    def test_collection_inline_rejects_duplicate_product_membership(self):
+        collection = self.make_collection()
+        product = self.make_product()
+        inline = CollectionMembershipInline(Collection, admin.site)
+        formset_class = inline.get_formset(self.request, collection)
+        formset = formset_class(
+            data={
+                "collectionproduct_set-TOTAL_FORMS": "2",
+                "collectionproduct_set-INITIAL_FORMS": "0",
+                "collectionproduct_set-MIN_NUM_FORMS": "0",
+                "collectionproduct_set-MAX_NUM_FORMS": "1000",
+                "collectionproduct_set-0-product": str(product.pk),
+                "collectionproduct_set-0-sort_order": "0",
+                "collectionproduct_set-1-product": str(product.pk),
+                "collectionproduct_set-1-sort_order": "1",
+            },
+            instance=collection,
+        )
+
+        self.assertFalse(formset.is_valid())
+        self.assertIn("duplicate", str(formset.errors).lower() + str(formset.non_form_errors()).lower())
 
     def test_duplicate_public_membership_is_a_formset_validation_error(self):
         product = self.make_product()
@@ -175,6 +253,60 @@ class CatalogAdminTests(AdminTestDataMixin, TestCase):
 
         self.assertFalse(formset.is_valid())
         self.assertIn("duplicate", str(formset.errors).lower() + str(formset.non_form_errors()).lower())
+
+    def test_invalid_variant_product_change_post_returns_form_without_persisting(self):
+        product = self.make_product()
+        data = {
+            "name": product.name,
+            "slug": product.slug,
+            "tagline": "",
+            "category": "",
+            "legacy_collection_label": "",
+            "scent_family": "",
+            "concentration": "",
+            "currency": "BDT",
+            "short_description": "",
+            "full_description": "",
+            "top_notes": "",
+            "heart_notes": "",
+            "base_notes": "",
+            "longevity": "",
+            "sillage": "",
+            "seasons": "",
+            "occasions": "",
+            "style_tags": "",
+            "in_stock": "on",
+            "is_published": "on",
+            "is_featured": "",
+            "is_bestseller": "",
+            "is_new": "",
+            "sort_order": "0",
+            "variants-TOTAL_FORMS": "1",
+            "variants-INITIAL_FORMS": "0",
+            "variants-MIN_NUM_FORMS": "0",
+            "variants-MAX_NUM_FORMS": "1000",
+            "variants-0-label": "50ml",
+            "variants-0-ml": "0",
+            "variants-0-price": "100.00",
+            "variants-0-compare_at_price": "",
+            "variants-0-in_stock": "on",
+            "variants-0-is_active": "on",
+            "variants-0-sort_order": "0",
+            "collectionproduct_set-TOTAL_FORMS": "0",
+            "collectionproduct_set-INITIAL_FORMS": "0",
+            "collectionproduct_set-MIN_NUM_FORMS": "0",
+            "collectionproduct_set-MAX_NUM_FORMS": "1000",
+            "_save": "Save",
+        }
+
+        response = self.client.post(
+            reverse("admin:catalog_product_change", args=[product.pk]),
+            data,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ensure this value is greater than or equal to 1")
+        self.assertFalse(ProductVariant.objects.filter(product=product).exists())
 
     def test_collection_admin_pages_and_configuration_work(self):
         collection = self.make_collection()
