@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "apps.core.apps.CoreConfig",
+    "apps.catalog.apps.CatalogConfig",
 ]
 
 MIDDLEWARE = [
@@ -51,8 +52,12 @@ ASGI_APPLICATION = "noirvale_backend.asgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("NOIRVALE_DB_NAME", "noirvale"),
+        "USER": os.environ.get("NOIRVALE_DB_USER", "noirvale"),
+        "PASSWORD": os.environ.get("NOIRVALE_DB_PASSWORD", "noirvale-local-only"),
+        "HOST": os.environ.get("NOIRVALE_DB_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("NOIRVALE_DB_PORT", "5433"),
     }
 }
 
