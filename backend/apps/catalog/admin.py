@@ -2,9 +2,10 @@ from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.forms.models import BaseInlineFormSet
+from django.utils.html import format_html
 
-from .forms import ProductAdminForm
-from .models import Collection, CollectionProduct, Product, ProductVariant
+from .forms import CollectionImageAdminForm, ProductAdminForm, ProductImageAdminForm
+from .models import Collection, CollectionImage, CollectionProduct, Product, ProductImage, ProductVariant
 
 
 class PublicCollectionMembershipFormSet(BaseInlineFormSet):
@@ -176,6 +177,45 @@ class ProductVariantInline(admin.TabularInline):
     verbose_name_plural = "Variants"
 
 
+class ProductImageFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        primary_count = 0
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data") or not form.cleaned_data or form.cleaned_data.get("DELETE"):
+                continue
+            if form.cleaned_data.get("role") == ProductImage.PRIMARY:
+                primary_count += 1
+        if primary_count > 1:
+            raise ValidationError("A product can have only one primary image.")
+
+
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    form = ProductImageAdminForm
+    formset = ProductImageFormSet
+    extra = 1
+    fields = ("preview", "upload", "role", "alt_text", "sort_order")
+    readonly_fields = ("preview",)
+    ordering = ("sort_order", "id")
+    verbose_name = "Product Image"
+    verbose_name_plural = "Product Images"
+
+    def get_formset(self, request, obj=None, **kwargs):
+        kwargs["fields"] = ("product", "role", "alt_text", "sort_order")
+        return super().get_formset(request, obj, **kwargs)
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        if not obj.secure_url:
+            return "No image uploaded"
+        return format_html(
+            '<img src="{}" alt="{}" style="width:100px;height:100px;object-fit:contain;" />',
+            obj.secure_url,
+            obj.alt_text or obj.product.name,
+        )
+
+
 class PublicCollectionInline(admin.TabularInline):
     model = CollectionProduct
     fk_name = "product"
@@ -188,7 +228,7 @@ class PublicCollectionInline(admin.TabularInline):
     verbose_name_plural = "Public Collections"
 
 
-ProductAdmin.inlines = (ProductVariantInline, PublicCollectionInline)
+ProductAdmin.inlines = (ProductVariantInline, PublicCollectionInline, ProductImageInline)
 
 
 @admin.register(ProductVariant)
@@ -230,6 +270,32 @@ class CollectionMembershipInline(admin.TabularInline):
     verbose_name_plural = "Public Collection Products"
 
 
+class CollectionImageInline(admin.StackedInline):
+    model = CollectionImage
+    form = CollectionImageAdminForm
+    extra = 1
+    max_num = 1
+    can_delete = True
+    fields = ("preview", "upload", "alt_text")
+    readonly_fields = ("preview",)
+    verbose_name = "Collection Image"
+    verbose_name_plural = "Collection Image"
+
+    def get_formset(self, request, obj=None, **kwargs):
+        kwargs["fields"] = ("collection", "alt_text")
+        return super().get_formset(request, obj, **kwargs)
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        if not obj.secure_url:
+            return "No image uploaded"
+        return format_html(
+            '<img src="{}" alt="{}" style="width:120px;height:80px;object-fit:contain;" />',
+            obj.secure_url,
+            obj.alt_text or obj.collection.name,
+        )
+
+
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "is_published", "product_count", "sort_order", "updated_at")
@@ -240,7 +306,7 @@ class CollectionAdmin(admin.ModelAdmin):
     list_per_page = 50
     prepopulated_fields = {"slug": ("name",)}
     readonly_fields = ("created_at", "updated_at")
-    inlines = (CollectionMembershipInline,)
+    inlines = (CollectionMembershipInline, CollectionImageInline)
     fieldsets = (
         ("Identity", {"fields": ("name", "slug")} ),
         ("Content", {"fields": ("description",)}),
@@ -264,6 +330,140 @@ class CollectionProductAdmin(admin.ModelAdmin):
     autocomplete_fields = ("collection", "product")
     ordering = ("collection", "sort_order", "id")
     list_per_page = 50
+
+
+class ProductImageAdmin(admin.ModelAdmin):
+    form = ProductImageAdminForm
+    list_display = ("preview", "product", "role", "format", "dimensions", "byte_size", "sort_order", "updated_at")
+    list_filter = ("role", "format")
+    search_fields = ("product__name", "product__slug", "alt_text", "cloudinary_public_id")
+    list_select_related = ("product",)
+    autocomplete_fields = ("product",)
+    ordering = ("product", "sort_order", "id")
+    list_per_page = 50
+    readonly_fields = (
+        "preview",
+        "storage_key",
+        "cloudinary_public_id",
+        "secure_url",
+        "asset_id",
+        "format",
+        "width",
+        "height",
+        "byte_size",
+        "cloudinary_version",
+        "created_at",
+        "updated_at",
+    )
+    fieldsets = (
+        ("Media", {"fields": ("product", "upload", "role", "alt_text", "sort_order", "preview")} ),
+        (
+            "Provider Metadata",
+            {
+                "fields": (
+                    "storage_key",
+                    "cloudinary_public_id",
+                    "secure_url",
+                    "asset_id",
+                    "format",
+                    "width",
+                    "height",
+                    "byte_size",
+                    "cloudinary_version",
+                )
+            },
+        ),
+        ("Audit", {"fields": ("created_at", "updated_at")} ),
+    )
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        kwargs["fields"] = ("product", "role", "alt_text", "sort_order")
+        return super().get_form(request, obj, change=change, **kwargs)
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        if not obj.secure_url:
+            return "No image uploaded"
+        return format_html(
+            '<img src="{}" alt="{}" style="width:100px;height:100px;object-fit:contain;" />',
+            obj.secure_url,
+            obj.alt_text or obj.product.name,
+        )
+
+    @admin.display(description="Dimensions")
+    def dimensions(self, obj):
+        if not obj.width or not obj.height:
+            return "—"
+        return f"{obj.width} × {obj.height}"
+
+
+class CollectionImageAdmin(admin.ModelAdmin):
+    form = CollectionImageAdminForm
+    list_display = ("preview", "collection", "format", "dimensions", "byte_size", "updated_at")
+    list_filter = ("format",)
+    search_fields = ("collection__name", "collection__slug", "alt_text", "cloudinary_public_id")
+    list_select_related = ("collection",)
+    autocomplete_fields = ("collection",)
+    ordering = ("collection", "id")
+    list_per_page = 50
+    readonly_fields = (
+        "preview",
+        "storage_key",
+        "cloudinary_public_id",
+        "secure_url",
+        "asset_id",
+        "format",
+        "width",
+        "height",
+        "byte_size",
+        "cloudinary_version",
+        "created_at",
+        "updated_at",
+    )
+    fieldsets = (
+        ("Media", {"fields": ("collection", "upload", "alt_text", "preview")} ),
+        (
+            "Provider Metadata",
+            {
+                "fields": (
+                    "storage_key",
+                    "cloudinary_public_id",
+                    "secure_url",
+                    "asset_id",
+                    "format",
+                    "width",
+                    "height",
+                    "byte_size",
+                    "cloudinary_version",
+                )
+            },
+        ),
+        ("Audit", {"fields": ("created_at", "updated_at")} ),
+    )
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        kwargs["fields"] = ("collection", "alt_text")
+        return super().get_form(request, obj, change=change, **kwargs)
+
+    @admin.display(description="Preview")
+    def preview(self, obj):
+        if not obj.secure_url:
+            return "No image uploaded"
+        return format_html(
+            '<img src="{}" alt="{}" style="width:120px;height:80px;object-fit:contain;" />',
+            obj.secure_url,
+            obj.alt_text or obj.collection.name,
+        )
+
+    @admin.display(description="Dimensions")
+    def dimensions(self, obj):
+        if not obj.width or not obj.height:
+            return "—"
+        return f"{obj.width} × {obj.height}"
+
+
+admin.site.register(ProductImage, ProductImageAdmin)
+admin.site.register(CollectionImage, CollectionImageAdmin)
 
 
 admin.site.site_header = "NOIRVALE Administration"

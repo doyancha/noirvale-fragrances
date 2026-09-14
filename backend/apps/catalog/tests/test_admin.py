@@ -8,6 +8,7 @@ from django.test import RequestFactory, TestCase
 from apps.catalog.admin import (
     CollectionMembershipInline,
     ProductAdmin,
+    ProductImageInline,
     PublicCollectionInline,
     ProductVariantInline,
 )
@@ -80,7 +81,7 @@ class CatalogAdminTests(AdminTestDataMixin, TestCase):
         self.assertEqual(ProductAdmin.list_editable, ("is_published", "in_stock", "is_featured", "is_bestseller", "is_new", "sort_order"))
         self.assertEqual(ProductAdmin.prepopulated_fields, {"slug": ("name",)})
         self.assertEqual(ProductAdmin.readonly_fields, ("created_at", "updated_at"))
-        self.assertEqual(ProductAdmin.inlines, (ProductVariantInline, PublicCollectionInline))
+        self.assertEqual(ProductAdmin.inlines, (ProductVariantInline, PublicCollectionInline, ProductImageInline))
 
     def test_product_json_lists_use_multiline_admin_fields(self):
         product = self.make_product(top_notes=["Bergamot", "Sea Salt"])

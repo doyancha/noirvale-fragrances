@@ -1,3 +1,5 @@
+import uuid
+
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import F, Q
@@ -131,3 +133,85 @@ class CollectionProduct(models.Model):
         indexes = [
             models.Index(fields=["collection", "sort_order"], name="catalog_coll_prod_order_idx")
         ]
+
+
+class ProductImage(models.Model):
+    PRIMARY = "primary"
+    GALLERY = "gallery"
+    ROLE_CHOICES = (
+        (PRIMARY, "Primary"),
+        (GALLERY, "Gallery"),
+    )
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
+    storage_key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    cloudinary_public_id = models.CharField(max_length=255, unique=True, editable=False)
+    secure_url = models.URLField(max_length=2048, blank=True, default="")
+    asset_id = models.CharField(max_length=255, blank=True, default="")
+    role = models.CharField(max_length=16, choices=ROLE_CHOICES, default=GALLERY)
+    alt_text = models.CharField(max_length=255, blank=True, default="")
+    sort_order = models.PositiveIntegerField(default=0)
+    format = models.CharField(max_length=16, blank=True, default="")
+    width = models.PositiveIntegerField(null=True, blank=True)
+    height = models.PositiveIntegerField(null=True, blank=True)
+    byte_size = models.PositiveBigIntegerField(null=True, blank=True)
+    cloudinary_version = models.PositiveBigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["product_id", "sort_order", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product"],
+                condition=Q(role="primary"),
+                name="catalog_product_one_primary_image",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["product", "role", "sort_order"], name="cat_prod_img_role_idx"),
+            models.Index(fields=["product", "sort_order"], name="catalog_prod_img_order_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.product} — {self.get_role_display()}"
+
+    @property
+    def default_cloudinary_public_id(self):
+        return f"noirvale/products/{self.storage_key}"
+
+    def save(self, *args, **kwargs):
+        if not self.cloudinary_public_id:
+            self.cloudinary_public_id = self.default_cloudinary_public_id
+        return super().save(*args, **kwargs)
+
+
+class CollectionImage(models.Model):
+    collection = models.OneToOneField(Collection, on_delete=models.CASCADE, related_name="image")
+    storage_key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    cloudinary_public_id = models.CharField(max_length=255, unique=True, editable=False)
+    secure_url = models.URLField(max_length=2048, blank=True, default="")
+    asset_id = models.CharField(max_length=255, blank=True, default="")
+    alt_text = models.CharField(max_length=255, blank=True, default="")
+    format = models.CharField(max_length=16, blank=True, default="")
+    width = models.PositiveIntegerField(null=True, blank=True)
+    height = models.PositiveIntegerField(null=True, blank=True)
+    byte_size = models.PositiveBigIntegerField(null=True, blank=True)
+    cloudinary_version = models.PositiveBigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["collection_id", "id"]
+
+    def __str__(self):
+        return f"{self.collection} — Image"
+
+    @property
+    def default_cloudinary_public_id(self):
+        return f"noirvale/collections/{self.storage_key}"
+
+    def save(self, *args, **kwargs):
+        if not self.cloudinary_public_id:
+            self.cloudinary_public_id = self.default_cloudinary_public_id
+        return super().save(*args, **kwargs)

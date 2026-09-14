@@ -7,19 +7,19 @@ The customer-facing storefront remains the existing Next.js application.
 
 ## Current phase
 
-Phase 3 — Django Admin Configuration.
+Phase 4 — Cloudinary Media Management.
 
 The locked roadmap is:
 
 - PostgreSQL: Phase 2 (complete)
-- Django Admin configuration: Phase 3 (current)
-- Cloudinary media: Phase 4
+- Django Admin configuration: Phase 3 (complete)
+- Cloudinary media: Phase 4 (current)
 - Django REST Framework: Phase 5
 - Railway deployment: Phase 10
 
-The catalogue schema and administration interface are included in this phase, but
-catalogue content is not migrated until Phase 6. There are no API resources or
-Cloudinary integration.
+The catalogue schema, administration interface, and media persistence layer are
+included in the completed phases, but catalogue content and its existing static
+images are not migrated until Phase 6. There are no API resources.
 
 ## Local setup (PowerShell)
 
@@ -49,10 +49,11 @@ python manage.py runserver 127.0.0.1:8000
 
 Open http://127.0.0.1:8000/admin/ after creating a local administrator with
 `python manage.py createsuperuser`. The current admin manages Products, Variants,
-public Collection memberships, publication flags, merchandising flags, and ordering.
+public Collection memberships, publication flags, merchandising flags, ordering,
+Product primary/gallery images, and Collection cover images. Media metadata is
+provider-owned and read-only.
 
-Media upload arrives in Phase 4, the public API in Phase 5, and existing catalogue
-import in Phase 6.
+The public API is Phase 5 and existing catalogue/media import is Phase 6.
 
 If Python 3.11 is unavailable, use another supported existing Python runtime. Do not
 install or replace system Python automatically.
@@ -77,6 +78,19 @@ Do not use `docker compose down -v` unless intentionally destroying local databa
 
 The catalogue tables are schema-only in Phase 2. The 12 products, 25 variants, and six
 collections are not migrated until Phase 6.
+
+## Cloudinary Media
+
+Phase 4 uses the official Cloudinary Python SDK for server-side Django Admin media
+operations. Configure the `CLOUDINARY_URL` environment variable as a server-side
+secret; never commit or print its value. Product media supports one primary image and
+ordered gallery images. Collections support one cover image. Admin supports upload,
+replacement, removal, safe previews, alt text, and ordering.
+
+The backend can start and run non-media checks without `CLOUDINARY_URL`. Real media
+uploads require it and fail cleanly when it is absent. Existing static storefront
+images are not uploaded or imported in Phase 4; that is Phase 6. API exposure and
+frontend consumption occur in later phases.
 
 ## Database environment variables
 
