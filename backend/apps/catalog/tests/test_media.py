@@ -412,7 +412,7 @@ class MediaTestCase(TestCase):
             f"{collection_prefix}-MIN_NUM_FORMS": "0",
             f"{collection_prefix}-MAX_NUM_FORMS": "1000",
             f"{image_prefix}-TOTAL_FORMS": str(len(image_rows or [])),
-            f"{image_prefix}-INITIAL_FORMS": "0",
+            f"{image_prefix}-INITIAL_FORMS": str(sum(1 for row in (image_rows or []) if row.get("id"))),
             f"{image_prefix}-MIN_NUM_FORMS": "0",
             f"{image_prefix}-MAX_NUM_FORMS": "1000",
             "_save": "Save",
@@ -430,14 +430,17 @@ class MediaTestCase(TestCase):
                 }
             )
         for index, row in enumerate(image_rows or []):
-            data.update(
-                {
-                    f"{image_prefix}-{index}-role": row.get("role", ProductImage.GALLERY),
-                    f"{image_prefix}-{index}-alt_text": row.get("alt_text", "Test image"),
-                    f"{image_prefix}-{index}-sort_order": str(index),
-                    f"{image_prefix}-{index}-upload": row["upload"],
-                }
-            )
+            data.update({
+                f"{image_prefix}-{index}-role": row.get("role", ProductImage.GALLERY),
+                f"{image_prefix}-{index}-alt_text": row.get("alt_text", "Test image"),
+                f"{image_prefix}-{index}-sort_order": str(row.get("sort_order", index)),
+            })
+            if row.get("id"):
+                data[f"{image_prefix}-{index}-id"] = str(row["id"])
+            if row.get("delete"):
+                data[f"{image_prefix}-{index}-DELETE"] = "on"
+            if row.get("upload") is not None:
+                data[f"{image_prefix}-{index}-upload"] = row["upload"]
         return data
 
     @patch("apps.catalog.media.uploader.upload")
@@ -488,6 +491,200 @@ class MediaTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         mock_upload.assert_not_called()
         self.assertFalse(ProductImage.objects.filter(product=product).exists())
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_two_new_gallery_uploads_are_rejected_before_provider_mutation(self, mock_upload):
+        product = self.make_product()
+        response = self.client.post(
+            reverse("admin:catalog_product_change", args=[product.pk]),
+            self.product_change_data(
+                product,
+                image_rows=[
+                    {"role": ProductImage.GALLERY, "upload": upload("one.png")},
+                    {"role": ProductImage.GALLERY, "upload": upload("two.png")},
+                ],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Upload or replace one product image at a time.")
+        mock_upload.assert_not_called()
+        self.assertFalse(ProductImage.objects.filter(product=product).exists())
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_two_product_image_replacements_are_rejected_before_provider_mutation(self, mock_upload):
+        product = self.make_product()
+        first = ProductImage.objects.create(
+            product=product,
+            role=ProductImage.GALLERY,
+            cloudinary_public_id="noirvale/products/replace-one",
+            secure_url="https://res.cloudinary.com/example/one.png",
+            alt_text="Original one",
+        )
+        second = ProductImage.objects.create(
+            product=product,
+            role=ProductImage.GALLERY,
+            cloudinary_public_id="noirvale/products/replace-two",
+            secure_url="https://res.cloudinary.com/example/two.png",
+            alt_text="Original two",
+        )
+        response = self.client.post(
+            reverse("admin:catalog_product_change", args=[product.pk]),
+            self.product_change_data(
+                product,
+                image_rows=[
+                    {"id": first.pk, "role": ProductImage.GALLERY, "upload": upload("new-one.png")},
+                    {"id": second.pk, "role": ProductImage.GALLERY, "upload": upload("new-two.png")},
+                ],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Upload or replace one product image at a time.")
+        mock_upload.assert_not_called()
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(first.secure_url, "https://res.cloudinary.com/example/one.png")
+        self.assertEqual(second.secure_url, "https://res.cloudinary.com/example/two.png")
+        self.assertEqual(first.cloudinary_public_id, "noirvale/products/replace-one")
+        self.assertEqual(second.cloudinary_public_id, "noirvale/products/replace-two")
+        self.assertEqual(ProductImage.objects.filter(product=product).count(), 2)
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_replacement_plus_new_upload_is_rejected_before_provider_mutation(self, mock_upload):
+        product = self.make_product()
+        existing = ProductImage.objects.create(
+            product=product,
+            role=ProductImage.GALLERY,
+            cloudinary_public_id="noirvale/products/replace-existing",
+            secure_url="https://res.cloudinary.com/example/original.png",
+        )
+        response = self.client.post(
+            reverse("admin:catalog_product_change", args=[product.pk]),
+            self.product_change_data(
+                product,
+                image_rows=[
+                    {"id": existing.pk, "role": ProductImage.GALLERY, "upload": upload("replacement.png")},
+                    {"role": ProductImage.GALLERY, "upload": upload("new.png")},
+                ],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Upload or replace one product image at a time.")
+        mock_upload.assert_not_called()
+        existing.refresh_from_db()
+        self.assertEqual(existing.secure_url, "https://res.cloudinary.com/example/original.png")
+        self.assertEqual(existing.cloudinary_public_id, "noirvale/products/replace-existing")
+        self.assertEqual(ProductImage.objects.filter(product=product).count(), 1)
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_one_new_upload_allows_metadata_edits_on_other_images(self, mock_upload):
+        product = self.make_product()
+        existing = ProductImage.objects.create(
+            product=product,
+            role=ProductImage.GALLERY,
+            cloudinary_public_id="noirvale/products/metadata-only",
+            secure_url="https://res.cloudinary.com/example/original.png",
+            alt_text="Before",
+        )
+        mock_upload.side_effect = lambda uploaded_file, **kwargs: cloudinary_response(kwargs["public_id"])
+        response = self.client.post(
+            reverse("admin:catalog_product_change", args=[product.pk]),
+            self.product_change_data(
+                product,
+                image_rows=[
+                    {"id": existing.pk, "role": ProductImage.GALLERY, "alt_text": "After"},
+                    {"role": ProductImage.GALLERY, "upload": upload("new.png")},
+                ],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        mock_upload.assert_called_once()
+        existing.refresh_from_db()
+        self.assertEqual(existing.alt_text, "After")
+        self.assertEqual(ProductImage.objects.filter(product=product).count(), 2)
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_one_replacement_allows_metadata_edits_on_other_images(self, mock_upload):
+        product = self.make_product()
+        replacement = ProductImage.objects.create(
+            product=product,
+            role=ProductImage.GALLERY,
+            cloudinary_public_id="noirvale/products/replacement",
+            secure_url="https://res.cloudinary.com/example/old.png",
+        )
+        original_pk = replacement.pk
+        original_storage_key = replacement.storage_key
+        metadata_only = ProductImage.objects.create(
+            product=product,
+            role=ProductImage.GALLERY,
+            cloudinary_public_id="noirvale/products/metadata-only-two",
+            secure_url="https://res.cloudinary.com/example/other.png",
+            alt_text="Before",
+        )
+        mock_upload.side_effect = lambda uploaded_file, **kwargs: cloudinary_response(
+            kwargs["public_id"], secure_url="https://res.cloudinary.com/example/new.png"
+        )
+        response = self.client.post(
+            reverse("admin:catalog_product_change", args=[product.pk]),
+            self.product_change_data(
+                product,
+                image_rows=[
+                    {"id": replacement.pk, "role": ProductImage.GALLERY, "upload": upload("replacement.png")},
+                    {"id": metadata_only.pk, "role": ProductImage.GALLERY, "alt_text": "After"},
+                ],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        mock_upload.assert_called_once()
+        replacement.refresh_from_db()
+        metadata_only.refresh_from_db()
+        self.assertEqual(replacement.pk, original_pk)
+        self.assertEqual(replacement.storage_key, original_storage_key)
+        self.assertEqual(replacement.cloudinary_public_id, "noirvale/products/replacement")
+        self.assertEqual(replacement.secure_url, "https://res.cloudinary.com/example/new.png")
+        self.assertEqual(metadata_only.alt_text, "After")
+
+    @patch("apps.catalog.media.uploader.destroy")
+    @patch("apps.catalog.media.uploader.upload")
+    def test_delete_plus_upload_remains_deterministic(self, mock_upload, mock_destroy):
+        product = self.make_product()
+        deleted = ProductImage.objects.create(
+            product=product,
+            role=ProductImage.GALLERY,
+            cloudinary_public_id="noirvale/products/deleted",
+            secure_url="https://res.cloudinary.com/example/deleted.png",
+        )
+        kept = ProductImage.objects.create(
+            product=product,
+            role=ProductImage.GALLERY,
+            cloudinary_public_id="noirvale/products/kept",
+            secure_url="https://res.cloudinary.com/example/kept.png",
+        )
+        mock_upload.side_effect = lambda uploaded_file, **kwargs: cloudinary_response(kwargs["public_id"])
+        mock_destroy.return_value = {"result": "ok"}
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("admin:catalog_product_change", args=[product.pk]),
+                self.product_change_data(
+                    product,
+                    image_rows=[
+                        {"id": deleted.pk, "delete": True},
+                        {"id": kept.pk, "role": ProductImage.GALLERY, "upload": upload("kept-new.png")},
+                    ],
+                ),
+            )
+
+        self.assertEqual(response.status_code, 302)
+        mock_upload.assert_called_once()
+        mock_destroy.assert_called_once_with(
+            "noirvale/products/deleted", resource_type="image", invalidate=True
+        )
+        self.assertFalse(ProductImage.objects.filter(pk=deleted.pk).exists())
+        self.assertTrue(ProductImage.objects.filter(pk=kept.pk).exists())
 
     @patch("apps.catalog.media.uploader.upload")
     def test_valid_product_admin_submission_uploads_and_persists_media(self, mock_upload):

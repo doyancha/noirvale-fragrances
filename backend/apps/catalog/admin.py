@@ -209,11 +209,16 @@ class ProductImageFormSet(BaseInlineFormSet):
     def clean(self):
         super().clean()
         primary_count = 0
+        pending_upload_count = 0
         for form in self.forms:
             if not hasattr(form, "cleaned_data") or not form.cleaned_data or form.cleaned_data.get("DELETE"):
                 continue
+            if getattr(form, "_pending_upload", None):
+                pending_upload_count += 1
             if form.cleaned_data.get("role") == ProductImage.PRIMARY:
                 primary_count += 1
+        if pending_upload_count > 1:
+            raise ValidationError("Upload or replace one product image at a time.")
         if primary_count > 1:
             raise ValidationError("A product can have only one primary image.")
 
