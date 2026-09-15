@@ -4,18 +4,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ProductCard from '@/components/product/ProductCard';
 import { siteConfig } from '@/lib/config';
-import { getStorefrontCollectionBySlug, getStorefrontCollectionDetail, getStorefrontCollections } from '@/lib/catalog/server';
+import { getStorefrontCollectionBySlug, getStorefrontCollectionDetail, getStorefrontCollectionStaticParams } from '@/lib/catalog/server';
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
 export const dynamicParams = true;
-export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
-  const collections = await getStorefrontCollections();
-  return collections.map((c) => ({ slug: c.slug }));
+  return getStorefrontCollectionStaticParams();
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

@@ -4,20 +4,16 @@ import type { Metadata } from 'next';
 import ProductDetail from '@/components/product/ProductDetail';
 import ProductCard from '@/components/product/ProductCard';
 import { getRelatedProducts } from '@/lib/catalog/static';
-import { getStorefrontProductBySlug, getStorefrontProducts } from '@/lib/catalog/server';
+import { getStorefrontProductBySlug, getStorefrontProductStaticParams, getStorefrontProducts } from '@/lib/catalog/server';
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
 export const dynamicParams = true;
-export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
-  const products = await getStorefrontProducts();
-  return products.map((product) => ({
-    slug: product.slug,
-  }));
+  return getStorefrontProductStaticParams();
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

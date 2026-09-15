@@ -11,9 +11,6 @@ import { FinalCTA } from '@/components/home/FinalCTA';
 import { siteConfig } from '@/lib/config';
 import { getStorefrontCollections, getStorefrontProductBySlug, getStorefrontProducts } from '@/lib/catalog/server';
 
-export const dynamic = 'force-dynamic';
-
-
 export default async function HomePage() {
   const [products, collections] = await Promise.all([
     getStorefrontProducts(),

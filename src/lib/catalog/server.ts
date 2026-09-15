@@ -1,4 +1,5 @@
 import { adaptApiCollection, adaptApiProduct, CatalogDataError } from './adapters';
+import { unstable_rethrow } from 'next/navigation';
 import type { ApiCollectionDto, ApiProductDto } from './api-types';
 import { getCatalogApiBaseUrl, getCatalogSource } from './config';
 import { getStaticCollectionDetail, getStaticCollectionBySlug, getStaticCollections, getStaticProductBySlug, getStaticProducts } from './static';
@@ -17,12 +18,13 @@ async function apiJson<T>(path: string, purpose: string): Promise<T> {
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
     const response = await fetch(endpoint, {
-      cache: process.env.NEXT_PHASE === 'phase-production-build' ? 'force-cache' : 'no-store',
+      cache: 'no-store',
       signal: controller.signal,
     });
     if (!response.ok) throw new CatalogRequestError(`Catalogue ${purpose} failed with HTTP ${response.status}.`);
     try { return (await response.json()) as T; } catch { throw new CatalogRequestError(`Catalogue ${purpose} returned invalid JSON.`); }
   } catch (error) {
+    unstable_rethrow(error);
     if (error instanceof CatalogRequestError) throw error;
     const reason = error instanceof Error ? ` (${error.name}: ${error.message})` : '';
     throw new CatalogRequestError(`Catalogue ${purpose} could not be reached${reason}.`);
@@ -40,6 +42,11 @@ export async function getStorefrontProducts(): Promise<Product[]> {
   return apiList<ApiProductDto>(payload, 'product list').map(adaptApiProduct);
 }
 
+export function getStorefrontProductStaticParams(): { slug: string }[] {
+  if (getCatalogSource() === 'api') return [];
+  return getStaticProducts().map((product) => ({ slug: product.slug }));
+}
+
 export async function getStorefrontProductBySlug(slug: string): Promise<Product | undefined> {
   if (getCatalogSource() === 'static') return getStaticProductBySlug(slug);
   try {
@@ -54,6 +61,11 @@ export async function getStorefrontCollections(): Promise<CollectionInfo[]> {
   if (getCatalogSource() === 'static') return getStaticCollections();
   const payload = await apiJson<unknown>('/collections/', 'collection list request');
   return apiList<ApiCollectionDto>(payload, 'collection list').map(adaptApiCollection);
+}
+
+export function getStorefrontCollectionStaticParams(): { slug: string }[] {
+  if (getCatalogSource() === 'api') return [];
+  return getStaticCollections().map((collection) => ({ slug: collection.slug }));
 }
 
 export async function getStorefrontCollectionBySlug(slug: string): Promise<CollectionInfo | undefined> {

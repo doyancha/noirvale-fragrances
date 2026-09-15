@@ -3,9 +3,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getStorefrontCollectionDetail, getStorefrontCollections } from '@/lib/catalog/server';
 
-export const dynamic = 'force-dynamic';
-
-
 export const metadata: Metadata = {
   title: 'Our Collections',
   description: 'Explore our curated collections of luxury men\'s fragrances.',

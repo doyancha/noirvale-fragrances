@@ -3,9 +3,6 @@ import ShopContent from '@/components/shop/ShopContent';
 import { siteConfig } from '@/lib/config';
 import { getStorefrontProducts } from '@/lib/catalog/server';
 
-export const dynamic = 'force-dynamic';
-
-
 export const metadata: Metadata = {
   title: 'Shop All Fragrances',
   description:
