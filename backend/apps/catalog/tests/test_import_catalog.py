@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 from decimal import Decimal
+from io import StringIO
 
 from django.core.management import call_command, CommandError
 from django.test import TestCase
@@ -31,8 +32,11 @@ class CatalogImportTests(TestCase):
         self.client = APIClient()
         self.cloudinary_env = patch.dict(os.environ, {"CLOUDINARY_URL": "cloudinary://key:secret@example"})
         self.cloudinary_env.start()
+        self.cloudinary_config = patch.object(importer, "_configure_cloudinary")
+        self.cloudinary_config.start()
 
     def tearDown(self):
+        self.cloudinary_config.stop()
         self.cloudinary_env.stop()
 
     def test_snapshot_counts_membership_and_source_hash(self):
@@ -136,6 +140,65 @@ class CatalogImportTests(TestCase):
         self.assertEqual(Product.objects.count(), 12)
         self.assertEqual(CollectionProduct.objects.count(), 18)
         self.assertEqual(ProductImage.objects.values("cloudinary_public_id").distinct().count(), 12)
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_dry_run_reports_completed_media_as_existing(self, mock_upload):
+        mock_upload.side_effect = lambda uploaded_file, **kwargs: provider_response(kwargs["public_id"])
+        call_command("import_noirvale_catalog")
+        output = StringIO()
+        call_command("import_noirvale_catalog", dry_run=True, stdout=output)
+        self.assertIn("Products: create 0 / existing 12", output.getvalue())
+        self.assertIn("Variants: create 0 / existing 25", output.getvalue())
+        self.assertIn("Collections: create 0 / existing 6", output.getvalue())
+        self.assertIn("Memberships: create 0 / existing 18", output.getvalue())
+        self.assertIn("Product images: upload 0 / existing 12", output.getvalue())
+        self.assertIn("Collection images: upload 0 / existing 6", output.getvalue())
+        self.assertEqual(mock_upload.call_count, 18)
+
+    @patch("apps.catalog.media.uploader.destroy")
+    @patch("apps.catalog.media.uploader.upload")
+    def test_upload_success_metadata_save_failure_cleans_provider_and_row(self, mock_upload, mock_destroy):
+        mock_upload.side_effect = lambda uploaded_file, **kwargs: provider_response(kwargs["public_id"])
+        mock_destroy.return_value = {"result": "ok"}
+        original_save = ProductImage.save
+
+        def fail_metadata_save(instance, *args, **kwargs):
+            if kwargs.get("update_fields"):
+                raise RuntimeError("metadata database failure")
+            return original_save(instance, *args, **kwargs)
+
+        with patch.object(ProductImage, "save", new=fail_metadata_save), self.assertRaises(CommandError):
+            call_command("import_noirvale_catalog")
+
+        expected_key, expected_public_id = importer._expected_media(
+            "product", "noir-reserve:/noirvale/products/noir-reserve/main.webp"
+        )
+        self.assertEqual(mock_upload.call_count, 1)
+        mock_destroy.assert_called_once_with(expected_public_id, resource_type="image", invalidate=True)
+        self.assertFalse(ProductImage.objects.filter(storage_key=expected_key).exists())
+        self.assertFalse(ProductImage.objects.filter(secure_url__startswith="https://").exists())
+
+        mock_upload.reset_mock()
+        call_command("import_noirvale_catalog")
+        self.assertEqual(ProductImage.objects.filter(secure_url__startswith="https://").count(), 12)
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_incomplete_media_wrong_public_id_is_a_conflict(self, mock_upload):
+        snapshot, memberships = importer.load_snapshot()
+        importer.create_relational(snapshot, memberships)
+        product = Product.objects.get(slug="noir-reserve")
+        key, _ = importer._expected_media("product", "noir-reserve:/noirvale/products/noir-reserve/main.webp")
+        ProductImage.objects.create(
+            product=product,
+            storage_key=key,
+            cloudinary_public_id="noirvale/products/wrong-identity",
+            role=ProductImage.PRIMARY,
+            sort_order=0,
+        )
+        with self.assertRaisesMessage(CommandError, "Bootstrap conflict"):
+            call_command("import_noirvale_catalog")
+        self.assertEqual(mock_upload.call_count, 0)
+        self.assertEqual(ProductImage.objects.get(storage_key=key).cloudinary_public_id, "noirvale/products/wrong-identity")
 
     @patch("apps.catalog.media.uploader.upload")
     def test_media_failure_can_resume_without_duplicates(self, mock_upload):

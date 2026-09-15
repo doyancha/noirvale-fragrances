@@ -248,13 +248,8 @@ def migrate_media(snapshot, stdout):
         key, public_id = _expected_media(kind, f"{owner_slug}:{path}")
         model = ProductImage if kind == "product" else CollectionImage
         owner = (Product.objects.get(slug=owner_slug) if kind == "product" else Collection.objects.get(slug=owner_slug))
-        filters = {"storage_key": key}
-        image = model.objects.filter(**filters).first()
-        if image and ((kind == "product" and image.product_id != owner.pk) or (kind == "collection" and image.collection_id != owner.pk)):
-            _conflict(f"bootstrap {kind} image {public_id} is attached to the wrong record.")
+        image = _inspect_media_row(model, owner, kind, key, public_id, role, sort_order)
         if image and image.secure_url:
-            if image.cloudinary_public_id != public_id:
-                _conflict(f"bootstrap {kind} image {public_id} has a different provider identity.")
             existing += 1
             continue
         _, uploaded_file = _public_asset(path)
@@ -265,16 +260,55 @@ def migrate_media(snapshot, stdout):
         else:
             defaults.update({"collection": owner})
             image, _ = CollectionImage.objects.get_or_create(storage_key=key, defaults=defaults)
+        image._pending_media_is_new = True
         try:
             with transaction.atomic():
                 persist_uploaded_media(image, uploaded_file)
-        except (MediaProviderError, OSError, ValueError) as exc:
-            if image.pk and not image.secure_url:
+        except Exception as exc:
+            if image.pk:
+                image.cloudinary_public_id = ""
                 image.delete()
             raise CommandError(f"Cloudinary media migration failed for {kind} {owner_slug}: {exc}") from exc
+        finally:
+            if hasattr(image, "_pending_media_is_new"):
+                del image._pending_media_is_new
         uploaded += 1
         stdout.write(f"Uploaded {kind} image for {owner_slug}")
     return uploaded, existing
+
+
+def _inspect_media_row(model, owner, kind, key, public_id, role, sort_order):
+    image = model.objects.filter(storage_key=key).first()
+    by_public_id = model.objects.filter(cloudinary_public_id=public_id).first()
+    if by_public_id and (not image or by_public_id.pk != image.pk):
+        _conflict(f"bootstrap {kind} image {public_id} has a conflicting provider identity.")
+    if not image:
+        return None
+    if (kind == "product" and image.product_id != owner.pk) or (kind == "collection" and image.collection_id != owner.pk):
+        _conflict(f"bootstrap {kind} image {public_id} is attached to the wrong record.")
+    if image.cloudinary_public_id != public_id:
+        _conflict(f"bootstrap {kind} image {public_id} has a different provider identity.")
+    if kind == "product" and (image.role != role or image.sort_order != sort_order):
+        _conflict(f"bootstrap product image {public_id} has conflicting role or sort order.")
+    return image
+
+
+def inspect_media(snapshot):
+    upload_counts = {"product": 0, "collection": 0}
+    existing_counts = {"product": 0, "collection": 0}
+    for kind, owner_slug, path, role, sort_order, _ in _media_rows(snapshot):
+        key, public_id = _expected_media(kind, f"{owner_slug}:{path}")
+        model = ProductImage if kind == "product" else CollectionImage
+        owner = (Product.objects.filter(slug=owner_slug).first() if kind == "product" else Collection.objects.filter(slug=owner_slug).first())
+        if not owner:
+            upload_counts[kind] += 1
+            continue
+        image = _inspect_media_row(model, owner, kind, key, public_id, role, sort_order)
+        if image and image.secure_url:
+            existing_counts[kind] += 1
+        else:
+            upload_counts[kind] += 1
+    return upload_counts, existing_counts
 
 
 class Command(BaseCommand):
@@ -286,13 +320,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         snapshot, memberships = load_snapshot()
         product_creates, variant_creates, collection_creates, membership_creates = inspect_relational(snapshot, memberships)
+        media_uploads, media_existing = inspect_media(snapshot)
         if options["dry_run"]:
             self.stdout.write("Dry run: no database changes or Cloudinary calls.")
             self.stdout.write(f"Products: create {product_creates} / existing {12 - product_creates}")
             self.stdout.write(f"Variants: create {variant_creates} / existing {25 - variant_creates}")
             self.stdout.write(f"Collections: create {collection_creates} / existing {6 - collection_creates}")
             self.stdout.write(f"Memberships: create {membership_creates} / existing {18 - membership_creates}")
-            self.stdout.write("Product images: 12 planned / Collection images: 6 planned")
+            self.stdout.write(f"Product images: upload {media_uploads['product']} / existing {media_existing['product']}")
+            self.stdout.write(f"Collection images: upload {media_uploads['collection']} / existing {media_existing['collection']}")
             return
         try:
             _configure_cloudinary()
