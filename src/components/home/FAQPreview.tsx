@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { faqItems } from '@/data/faq';
+import type { FAQItem } from '@/lib/types';
 
-export function FAQPreview() {
+export function FAQPreview({ items }: { items: FAQItem[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const previewItems = faqItems.slice(0, 4);
+  const previewItems = items.slice(0, 4);
 
   return (
     <section className="bg-noir-900 py-20 lg:py-32">

@@ -4,6 +4,7 @@ import { siteConfig } from '@/lib/config';
 import { HeaderStack } from '@/components/layout/HeaderStack';
 import { Footer } from '@/components/layout/Footer';
 import { FloatingWhatsApp } from '@/components/ui/FloatingWhatsApp';
+import { getBusinessSettings } from '@/lib/business/server';
 import './globals.css';
 
 const serif = Cormorant_Garamond({
@@ -69,17 +70,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const settings = await getBusinessSettings();
   return (
     <html lang="en" className={`${serif.variable} ${sans.variable}`}>
       <body className="min-h-screen overflow-x-hidden bg-noir-950 text-ivory antialiased">
-        <HeaderStack />
+        <HeaderStack settings={settings} />
         {children}
-        <Footer />
+        <Footer settings={settings} />
         <FloatingWhatsApp />
       </body>
     </html>

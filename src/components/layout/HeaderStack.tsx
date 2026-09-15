@@ -3,8 +3,9 @@
 import { useEffect, useRef } from 'react';
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import { Header } from '@/components/layout/Header';
+import type { BusinessSettings } from '@/lib/business/types';
 
-export function HeaderStack() {
+export function HeaderStack({ settings }: { settings: BusinessSettings }) {
   const stackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export function HeaderStack() {
 
   return (
     <div ref={stackRef} className="sticky top-0 z-50 w-full">
-      <AnnouncementBar />
+      <AnnouncementBar settings={settings} />
       <Header />
     </div>
   );

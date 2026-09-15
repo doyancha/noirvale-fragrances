@@ -1,8 +1,10 @@
 import Accordion from '@/components/ui/Accordion';
-import { faqItems } from '@/data/faq';
+import { buildFaqItems } from '@/data/faq';
+import { getBusinessSettings } from '@/lib/business/server';
 import Link from 'next/link';
 
-export default function FAQPage() {
+export default async function FAQPage() {
+  const faqItems = buildFaqItems(await getBusinessSettings());
   return (
     <div className="bg-[#0a0a0a] text-[#faf7f4] min-h-screen pt-10 pb-16 md:pt-12">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">

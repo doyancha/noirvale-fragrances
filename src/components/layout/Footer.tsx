@@ -2,13 +2,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Phone, Mail, Clock, MapPin } from 'lucide-react';
 import { siteConfig } from '@/lib/config';
+import type { BusinessSettings } from '@/lib/business/types';
 import { FacebookIcon, InstagramIcon, PinterestIcon } from '@/components/ui/PlatformIcons';
 
-export function Footer() {
+export function Footer({ settings }: { settings: BusinessSettings }) {
   const hasBusinessDetails =
-    Boolean(siteConfig.contact.phone) ||
-    Boolean(siteConfig.contact.email) ||
-    Boolean(siteConfig.business.hours);
+    Boolean(settings.contact.phone) || Boolean(settings.contact.email) || Boolean(settings.business.hours);
 
   return (
     <footer className="bg-[#0a0a0a] text-[#faf7f4] border-t border-white/5 pt-16 pb-8">
@@ -37,9 +36,9 @@ export function Footer() {
             <div className="pt-2">
               <h3 className="font-serif text-[#c9a96e] text-lg mb-4">Social</h3>
               <div className="flex flex-wrap gap-3">
-                {siteConfig.social.facebook && (
+                {settings.social.facebook && (
                   <a
-                    href={siteConfig.social.facebook}
+                    href={settings.social.facebook}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Facebook"
@@ -49,9 +48,9 @@ export function Footer() {
                     <span>Facebook</span>
                   </a>
                 )}
-                {siteConfig.social.instagram && (
+                {settings.social.instagram && (
                   <a
-                    href={siteConfig.social.instagram}
+                    href={settings.social.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Instagram"
@@ -61,9 +60,9 @@ export function Footer() {
                     <span>Instagram</span>
                   </a>
                 )}
-                {siteConfig.social.pinterest && (
+                {settings.social.pinterest && (
                   <a
-                    href={siteConfig.social.pinterest}
+                    href={settings.social.pinterest}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Pinterest"
@@ -124,39 +123,39 @@ export function Footer() {
             <h3 className="font-serif text-[#c9a96e] text-lg mb-6">Contact</h3>
             {hasBusinessDetails ? (
               <ul className="space-y-4 text-sm font-sans text-[#faf7f4]/70">
-                {siteConfig.contact.phone && (
+                {settings.contact.phone && (
                   <li className="flex items-start space-x-3">
                     <Phone size={18} className="text-[#c9a96e] shrink-0 mt-0.5" />
-                    <span>{siteConfig.contact.phone}</span>
+                    <span>{settings.contact.phone}</span>
                   </li>
                 )}
-                {siteConfig.contact.email && (
+                {settings.contact.email && (
                   <li className="flex items-start space-x-3">
                     <Mail size={18} className="text-[#c9a96e] shrink-0 mt-0.5" />
                     <a
-                      href={`mailto:${siteConfig.contact.email}`}
+                      href={`mailto:${settings.contact.email}`}
                       className="hover:text-[#c9a96e] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a96e] rounded-sm px-1 -ml-1"
                     >
-                      {siteConfig.contact.email}
+                      {settings.contact.email}
                     </a>
                   </li>
                 )}
-                {siteConfig.business.hours && (
+                {settings.business.hours && (
                   <li className="flex items-start space-x-3">
                     <Clock size={18} className="text-[#c9a96e] shrink-0 mt-0.5" />
-                    <span>{siteConfig.business.hours}</span>
+                    <span>{settings.business.hours}</span>
                   </li>
                 )}
-                {siteConfig.business.location && (
+                {settings.business.location && (
                   <li className="flex items-start space-x-3">
                     <MapPin size={18} className="text-[#c9a96e] shrink-0 mt-0.5" />
-                    <span>{siteConfig.business.location}</span>
+                    <span>{settings.business.location}</span>
                   </li>
                 )}
-                {siteConfig.business.serviceArea && (
+                {settings.business.serviceArea && (
                   <li className="flex items-start space-x-3">
                     <span className="mt-0.5 text-[#c9a96e]">•</span>
-                    <span>{siteConfig.business.serviceArea}</span>
+                    <span>{settings.business.serviceArea}</span>
                   </li>
                 )}
               </ul>

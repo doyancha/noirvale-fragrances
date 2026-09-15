@@ -10,23 +10,26 @@ import { FAQPreview } from '@/components/home/FAQPreview';
 import { FinalCTA } from '@/components/home/FinalCTA';
 import { siteConfig } from '@/lib/config';
 import { getStorefrontCollections, getStorefrontProductBySlug, getStorefrontProducts } from '@/lib/catalog/server';
+import { getBusinessSettings } from '@/lib/business/server';
+import { buildFaqItems } from '@/data/faq';
 
 export default async function HomePage() {
-  const [products, collections] = await Promise.all([
+  const [products, collections, settings] = await Promise.all([
     getStorefrontProducts(),
     getStorefrontCollections(),
+    getBusinessSettings(),
   ]);
   const signatureProduct = await getStorefrontProductBySlug(
     products.find((product) => product.name.includes('Imperial Oud'))?.slug ?? 'imperial-oud'
   );
   const hasSiteUrl = Boolean(siteConfig.seo.siteUrl);
   const contactPoint =
-    siteConfig.contact.email || siteConfig.contact.phone || siteConfig.contact.whatsapp
+    settings.contact.email || settings.contact.phone || siteConfig.contact.whatsapp
       ? {
           '@type': 'ContactPoint',
           contactType: 'customer service',
-          ...(siteConfig.contact.email ? { email: siteConfig.contact.email } : {}),
-          ...(siteConfig.contact.phone ? { telephone: siteConfig.contact.phone } : {}),
+          ...(settings.contact.email ? { email: settings.contact.email } : {}),
+          ...(settings.contact.phone ? { telephone: settings.contact.phone } : {}),
       }
       : undefined;
 
@@ -41,7 +44,7 @@ export default async function HomePage() {
         <ShopByOccasion />
         <WhyNoirvale />
         <EditorialBanner />
-        <FAQPreview />
+        <FAQPreview items={buildFaqItems(settings)} />
         <FinalCTA />
       </main>
 

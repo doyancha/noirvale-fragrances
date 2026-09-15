@@ -69,7 +69,21 @@ NOIRVALE_CATALOG_API_BASE_URL=http://127.0.0.1:8000/api/v1
 
 `NOIRVALE_CATALOG_SOURCE` may be `static` or `api`; an omitted value means `static`. The API base URL is server-only and must not use a `NEXT_PUBLIC_` prefix. API mode fails visibly when Django is unavailable or returns invalid data; it does not silently fall back to static data. Django is fetched from Server Components, so browser CORS is not required.
 
-API mode renders the migrated Cloudinary HTTPS delivery URLs. Static mode remains the safety source until the later Phase 15 production cutover. Phase 7 does not configure Railway or Vercel environment variables. Phase 8 is the next authorized phase.
+API mode renders the migrated Cloudinary HTTPS delivery URLs. Static mode remains the safety source until the later Phase 15 production cutover. Phase 7 does not configure Railway or Vercel environment variables.
+
+## Phase 8 business settings
+
+Business operations and customer-care copy are managed through the Django singleton
+`BusinessSettings` record and Admin. The public read-only endpoint is
+`GET /api/v1/business-settings/`. The Next.js server-side business boundary reuses
+the Phase 7 source selector and API base URL: `static` reads `siteConfig` without
+requiring Django, while `api` reads Django with uncached server requests and fails
+visibly if the endpoint is unavailable. Static remains the default safety source.
+
+The WhatsApp destination, brand identity, navigation, and SEO configuration remain
+static by design; WhatsApp management is reserved for Phase 9. No browser CORS,
+Railway deployment, Vercel environment integration, or production cutover is part
+of this phase. Phase 15 remains the final source-of-truth cutover gate.
 
 ## Images
 

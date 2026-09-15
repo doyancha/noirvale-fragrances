@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
-import { siteConfig } from '@/lib/config';
+import { getBusinessSettings } from '@/lib/business/server';
 
 export const metadata: Metadata = {
   title: 'Terms & Conditions | NOIRVALE',
   description: 'Terms and operational conditions for NOIRVALE Fragrances.',
 };
 
-export default function TermsPage() {
-  const { delivery, returns, exchanges, damagedOrWrongProduct, fragranceGuidance } =
-    siteConfig.customerCare;
+export default async function TermsPage() {
+  const settings = await getBusinessSettings();
+  const { delivery, returns, exchanges, damagedOrWrongProduct, fragranceGuidance } = settings.customerCare;
 
   return (
     <div className="bg-[#0a0a0a] text-[#faf7f4] min-h-screen pt-10 pb-16 md:pt-12">

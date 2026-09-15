@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { siteConfig } from '@/lib/config';
+import { getBusinessSettings } from '@/lib/business/server';
 import { generateWhatsAppInquiryUrl } from '@/lib/whatsapp';
 import { MessageCircle, Phone, Mail, Clock, MapPin } from 'lucide-react';
 
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
   description: 'Get in touch with NOIRVALE Fragrances.',
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const settings = await getBusinessSettings();
   const whatsappUrl = generateWhatsAppInquiryUrl(
     'Hello NOIRVALE,\n\nI have a general inquiry from the website.\n\nThank you.'
   );
@@ -51,50 +53,50 @@ export default function ContactPage() {
 
           {/* Contact Details */}
           <div className="space-y-8">
-            {siteConfig.contact.phone && (
+            {settings.contact.phone && (
               <div className="flex items-start gap-4">
                 <Phone className="w-6 h-6 text-[#c9a96e] mt-1 shrink-0" />
                 <div>
                   <h3 className="text-lg font-medium mb-1">Phone</h3>
-                  <p className="text-gray-400">{siteConfig.contact.phone}</p>
+                  <p className="text-gray-400">{settings.contact.phone}</p>
                 </div>
               </div>
             )}
 
-            {siteConfig.contact.email && (
+            {settings.contact.email && (
               <div className="flex items-start gap-4">
                 <Mail className="w-6 h-6 text-[#c9a96e] mt-1 shrink-0" />
                 <div>
                   <h3 className="text-lg font-medium mb-1">Email</h3>
-                  <p className="text-gray-400">{siteConfig.contact.email}</p>
+                  <p className="text-gray-400">{settings.contact.email}</p>
                 </div>
               </div>
             )}
 
-            {siteConfig.business.hours && (
+            {settings.business.hours && (
               <div className="flex items-start gap-4">
                 <Clock className="w-6 h-6 text-[#c9a96e] mt-1 shrink-0" />
                 <div>
                   <h3 className="text-lg font-medium mb-1">Business Hours</h3>
-                  <p className="text-gray-400">{siteConfig.business.hours}</p>
-                  {siteConfig.business.closedDay && (
-                    <p className="text-gray-400">Closed on {siteConfig.business.closedDay}</p>
+                  <p className="text-gray-400">{settings.business.hours}</p>
+                  {settings.business.closedDay && (
+                    <p className="text-gray-400">Closed on {settings.business.closedDay}</p>
                   )}
                 </div>
               </div>
             )}
 
-            {siteConfig.business.location && (
+            {settings.business.location && (
               <div className="flex items-start gap-4">
                 <MapPin className="w-6 h-6 text-[#c9a96e] mt-1 shrink-0" />
                 <div>
                   <h3 className="text-lg font-medium mb-1">Operating Location</h3>
-                  <p className="text-gray-400">{siteConfig.business.location}</p>
-                  {siteConfig.business.serviceArea && (
-                    <p className="text-sm text-gray-500 mt-1">{siteConfig.business.serviceArea}</p>
+                  <p className="text-gray-400">{settings.business.location}</p>
+                  {settings.business.serviceArea && (
+                    <p className="text-sm text-gray-500 mt-1">{settings.business.serviceArea}</p>
                   )}
-                  {siteConfig.business.deliveryText && (
-                    <p className="text-sm text-gray-500 mt-2">{siteConfig.business.deliveryText}</p>
+                  {settings.business.deliveryText && (
+                    <p className="text-sm text-gray-500 mt-2">{settings.business.deliveryText}</p>
                   )}
                 </div>
               </div>

@@ -2,10 +2,13 @@
 // NOIRVALE Fragrances — FAQ Data
 // ============================================================================
 
-import { siteConfig } from '@/lib/config';
+import { getStaticBusinessSettings } from '@/lib/business/static';
+import type { BusinessSettings } from '@/lib/business/types';
 import type { FAQItem } from '@/lib/types';
 
-export const faqItems: FAQItem[] = [
+export function buildFaqItems(settings: BusinessSettings): FAQItem[] {
+  const { customerCare } = settings;
+  return [
   {
     question: 'How do I place an order?',
     answer:
@@ -19,30 +22,33 @@ export const faqItems: FAQItem[] = [
   {
     question: 'How long does delivery take?',
     answer:
-      `Inside Dhaka, delivery is estimated within ${siteConfig.customerCare.delivery.insideDhaka.estimate.toLowerCase()} with a ${siteConfig.customerCare.delivery.insideDhaka.charge} charge. Outside Dhaka, delivery is estimated within ${siteConfig.customerCare.delivery.outsideDhaka.estimate.toLowerCase()} with a ${siteConfig.customerCare.delivery.outsideDhaka.charge} charge. Delivery may take longer during public holidays, extreme weather, courier disruption, unusually high order volume, or remote-area delivery.`,
+      `Inside Dhaka, delivery is estimated within ${customerCare.delivery.insideDhaka.estimate.toLowerCase()} with a ${customerCare.delivery.insideDhaka.charge} charge. Outside Dhaka, delivery is estimated within ${customerCare.delivery.outsideDhaka.estimate.toLowerCase()} with a ${customerCare.delivery.outsideDhaka.charge} charge. ${customerCare.delivery.timingNote}`,
   },
   {
     question: 'How do fragrance performance notes work?',
     answer:
-      siteConfig.customerCare.fragranceGuidance.performance,
+      customerCare.fragranceGuidance.performance,
   },
   {
     question: 'Can I return a fragrance?',
     answer:
-      `An unopened, unused, and factory-sealed product may be reported for a return request within ${siteConfig.customerCare.returns.requestWindow}. Return acceptance remains subject to order verification and product condition. ${siteConfig.customerCare.returns.notes}`,
+      `An unopened, unused, and factory-sealed product may be reported for a return request within ${customerCare.returns.requestWindow}. Return acceptance remains subject to order verification and product condition. ${customerCare.returns.notes}`,
   },
   {
     question: 'Can I exchange a fragrance?',
     answer:
-      `Exchange requests must be made within ${siteConfig.customerCare.exchanges.requestWindow}. Eligible products should normally be ${siteConfig.customerCare.exchanges.eligible}. ${siteConfig.customerCare.exchanges.notes}`,
+      `Exchange requests must be made within ${customerCare.exchanges.requestWindow}. Eligible products should normally be ${customerCare.exchanges.eligible}. ${customerCare.exchanges.notes}`,
   },
   {
     question: 'What if I receive the wrong or a damaged product?',
     answer:
-      `Please contact us through WhatsApp within ${siteConfig.customerCare.damagedOrWrongProduct.contactWindow}. Share your order information and clear photos of the product and packaging where practical. ${siteConfig.customerCare.damagedOrWrongProduct.preferredResolution} ${siteConfig.customerCare.damagedOrWrongProduct.fallback}`,
+      `Please contact us through WhatsApp within ${customerCare.damagedOrWrongProduct.contactWindow}. Share your order information and clear photos of the product and packaging where practical. ${customerCare.damagedOrWrongProduct.preferredResolution} ${customerCare.damagedOrWrongProduct.fallback}`,
   },
   {
     question: 'How should I store my fragrance?',
-    answer: siteConfig.customerCare.fragranceGuidance.storage,
+    answer: customerCare.fragranceGuidance.storage,
   },
-];
+  ];
+}
+
+export const faqItems: FAQItem[] = buildFaqItems(getStaticBusinessSettings());

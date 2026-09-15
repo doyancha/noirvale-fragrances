@@ -5,6 +5,7 @@ import ProductDetail from '@/components/product/ProductDetail';
 import ProductCard from '@/components/product/ProductCard';
 import { getRelatedProducts } from '@/lib/catalog/static';
 import { getStorefrontProductBySlug, getStorefrontProductStaticParams, getStorefrontProducts } from '@/lib/catalog/server';
+import { getBusinessSettings } from '@/lib/business/server';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -59,6 +60,7 @@ export default async function ProductPage({ params }: Props) {
     notFound();
   }
 
+  const businessSettings = await getBusinessSettings();
   const relatedProducts = getRelatedProducts(product, await getStorefrontProducts(), 4);
 
   const jsonLd = {
@@ -99,7 +101,7 @@ export default async function ProductPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <main className="bg-[#0a0a0a] pt-10 md:pt-12">
-        <ProductDetail key={product.slug} product={product} siteUrl={siteConfig.seo.siteUrl} />
+        <ProductDetail key={product.slug} product={product} siteUrl={siteConfig.seo.siteUrl} businessSettings={businessSettings} />
 
         {relatedProducts.length > 0 && (
           <section className="border-t border-[#2a2a2a] bg-[#0a0a0a] py-16">

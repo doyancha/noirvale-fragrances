@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
-import { siteConfig } from '@/lib/config';
+import { getBusinessSettings } from '@/lib/business/server';
 
 export const metadata: Metadata = {
   title: 'Delivery Information | NOIRVALE',
   description: 'Learn about NOIRVALE delivery timelines, charges, COD, and order confirmation.',
 };
 
-export default function DeliveryPage() {
-  const { delivery } = siteConfig.customerCare;
+export default async function DeliveryPage() {
+  const settings = await getBusinessSettings();
+  const { delivery } = settings.customerCare;
 
   return (
     <div className="bg-[#0a0a0a] text-[#faf7f4] min-h-screen pt-10 pb-16 md:pt-12">
@@ -16,7 +17,7 @@ export default function DeliveryPage() {
           Delivery Information
         </h1>
         <p className="mx-auto mb-12 max-w-2xl text-center text-gray-400">
-          {siteConfig.business.location} serves as our operating base for a nationwide Bangladesh
+          {settings.business.location} serves as our operating base for a {settings.business.serviceArea.toLowerCase()}
           delivery workflow handled directly through WhatsApp.
         </p>
 
@@ -58,7 +59,7 @@ export default function DeliveryPage() {
           <section className="rounded-xl border border-white/10 bg-white/5 p-8">
             <h2 className="mb-4 font-serif text-2xl text-[#c9a96e]">Payment and Confirmation</h2>
             <div className="space-y-3 text-gray-300">
-              <p>Cash on Delivery is available.</p>
+              <p>{delivery.cod === 'Available' ? 'Cash on Delivery is available.' : delivery.cod}</p>
               <p>{delivery.advancePayment}</p>
               <p>{delivery.confirmation}</p>
               <p>{delivery.summary}</p>
@@ -73,15 +74,14 @@ export default function DeliveryPage() {
             <div className="rounded-lg border border-white/10 p-6">
               <h2 className="mb-3 font-serif text-xl text-[#c9a96e]">Order Details</h2>
               <p className="text-sm leading-relaxed text-gray-300">
-                Final confirmation can cover fragrance, size, price, delivery charge, delivery
-                location, customer contact details, and payment arrangement.
+                Final confirmation can cover {settings.customerCare.orderConfirmationFields.join(', ')}.
               </p>
             </div>
           </section>
 
           <section className="rounded-xl border border-white/10 bg-[#111111]/70 p-8">
             <h2 className="mb-4 font-serif text-2xl text-white">Storage and Delivery Care</h2>
-            <p className="text-gray-300">{siteConfig.customerCare.fragranceGuidance.storage}</p>
+            <p className="text-gray-300">{settings.customerCare.fragranceGuidance.storage}</p>
           </section>
         </div>
       </div>

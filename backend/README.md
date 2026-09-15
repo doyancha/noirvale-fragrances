@@ -7,7 +7,7 @@ The customer-facing storefront remains the existing Next.js application.
 
 ## Current phase
 
-Phase 5 — Django REST API.
+Phase 8 — Business Settings management.
 
 The locked roadmap is:
 
@@ -17,9 +17,16 @@ The locked roadmap is:
 - Django REST Framework: Phase 5
 - Railway deployment: Phase 10
 
-The catalogue schema, administration interface, media persistence layer, and public
-read-only catalogue API are included in the completed phases. Catalogue content and
-its existing static images are not migrated until Phase 6.
+The catalogue schema, administration interface, media persistence layer, public
+read-only catalogue API, Phase 6 migration, and Phase 7 storefront integration are
+complete. Business Settings are managed as one database-enforced singleton in Admin.
+
+The `BusinessSettings` singleton is seeded by migration, editable through Django
+Admin, and exposed read-only at `GET /api/v1/business-settings/`. Duplicate creation
+and deletion are denied at the Admin/application level and the database enforces the
+singleton key. The response contains public contact, social, operational, delivery,
+returns, exchanges, damaged-product, fragrance-guidance, and order-confirmation
+settings. It does not contain a WhatsApp destination; that remains Phase 9.
 
 ## Phase 6 catalogue bootstrap
 
@@ -37,8 +44,8 @@ After configuring the server-side `CLOUDINARY_URL`, run
 CollectionImages. The command uses deterministic bootstrap media identities,
 detects conflicts instead of overwriting Django Admin edits, and is safe to rerun
 after an interrupted media upload. It is bootstrap tooling, not an ongoing Admin
-synchronization engine. Phase 7 frontend integration has not started; the Next.js
-storefront remains static.
+synchronization engine. Phase 7 frontend integration supports static and API catalogue
+sources, with static remaining the default safety mode.
 
 ## Public catalogue API
 
@@ -51,10 +58,8 @@ The API uses Django REST Framework 3.18.1 and exposes these public, read-only ro
 
 Only published products and collections are visible. Only active variants are
 returned; active out-of-stock variants remain visible with their stock status. The
-normal local database is currently empty until Phase 6, so the list routes return
-`[]` until catalogue data is migrated. The Next.js frontend remains static until
-Phase 7. CORS is not configured in this phase. Phase 6 migration is next, followed
-later by Phase 7 frontend integration.
+development database contains the migrated catalogue. CORS is not configured; the
+Next.js API source fetches server-side.
 
 ## Local setup (PowerShell)
 
@@ -88,7 +93,8 @@ public Collection memberships, publication flags, merchandising flags, ordering,
 Product primary/gallery images, and Collection cover images. Media metadata is
 provider-owned and read-only.
 
-The public API is Phase 5 and existing catalogue/media import is Phase 6.
+The public catalogue API and Business Settings API are read-only; WhatsApp destination
+management remains reserved for Phase 9.
 
 If Python 3.11 is unavailable, use another supported existing Python runtime. Do not
 install or replace system Python automatically.
@@ -112,7 +118,7 @@ docker compose down
 Do not use `docker compose down -v` unless intentionally destroying local database data.
 
 The catalogue tables are schema-only in Phase 2. The 12 products, 25 variants, and six
-collections are not migrated until Phase 6.
+collections were migrated during Phase 6.
 
 ## Cloudinary Media
 

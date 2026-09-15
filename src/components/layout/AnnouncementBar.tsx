@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { siteConfig } from '@/lib/config';
+import type { BusinessSettings } from '@/lib/business/types';
 
-export function AnnouncementBar() {
+export function AnnouncementBar({ settings }: { settings: BusinessSettings }) {
   const [isVisible, setIsVisible] = useState(true);
 
   if (!isVisible) return null;
@@ -12,7 +12,7 @@ export function AnnouncementBar() {
   return (
     <div className="relative z-50 flex items-center justify-center bg-[#c9a96e] px-4 py-2 text-[#0a0a0a]">
       <div className="px-10 text-center font-sans text-xs font-medium leading-tight sm:px-8 sm:text-sm">
-        {siteConfig.business.serviceArea} • Order via WhatsApp • COD available
+        {settings.business.serviceArea} • Order via WhatsApp • {settings.customerCare.delivery.cod} COD
       </div>
       <button
         onClick={() => setIsVisible(false)}

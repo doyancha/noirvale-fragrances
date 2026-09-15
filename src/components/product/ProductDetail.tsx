@@ -6,12 +6,13 @@ import Link from 'next/link';
 import { MessageCircle, ChevronRight } from 'lucide-react';
 import { formatPrice, cn } from '@/lib/utils';
 import { generateWhatsAppOrderUrl } from '@/lib/whatsapp';
-import { siteConfig } from '@/lib/config';
 import type { Product, ProductSize } from '@/lib/types';
+import type { BusinessSettings } from '@/lib/business/types';
 
 interface ProductDetailProps {
   product: Product;
   siteUrl: string;
+  businessSettings: BusinessSettings;
 }
 
 const longevityLevels = { 'Light': 25, 'Moderate': 50, 'Long-lasting': 75, 'Beast mode': 100 };
@@ -21,7 +22,7 @@ function getDefaultSize(product: Product): ProductSize | null {
   return product.sizes.find((size) => size.inStock) ?? product.sizes[0] ?? null;
 }
 
-export default function ProductDetail({ product, siteUrl }: ProductDetailProps) {
+export default function ProductDetail({ product, siteUrl, businessSettings }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState<ProductSize | null>(() => getDefaultSize(product));
   const [mainImage, setMainImage] = useState<string>(product.images.main);
   const [showStickyCta, setShowStickyCta] = useState(false);
@@ -329,11 +330,11 @@ export default function ProductDetail({ product, siteUrl }: ProductDetailProps) 
               </h3>
               <p className="text-sm text-[#faf7f4]/60 leading-relaxed">
                 Orders are confirmed via WhatsApp. Tap the order button above to start a
-                conversation with our team. {siteConfig.customerCare.delivery.summary} {' '}
-                {siteConfig.customerCare.delivery.advancePayment}
+                conversation with our team. {businessSettings.customerCare.delivery.summary} {' '}
+                {businessSettings.customerCare.delivery.advancePayment}
               </p>
               <p className="mt-3 text-sm text-[#faf7f4]/45 leading-relaxed">
-                {siteConfig.customerCare.delivery.confirmation}
+                {businessSettings.customerCare.delivery.confirmation}
               </p>
             </div>
           </div>
