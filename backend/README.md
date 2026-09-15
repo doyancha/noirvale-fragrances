@@ -7,7 +7,7 @@ The customer-facing storefront remains the existing Next.js application.
 
 ## Current phase
 
-Phase 4 — Cloudinary Media Management.
+Phase 5 — Django REST API.
 
 The locked roadmap is:
 
@@ -17,9 +17,25 @@ The locked roadmap is:
 - Django REST Framework: Phase 5
 - Railway deployment: Phase 10
 
-The catalogue schema, administration interface, and media persistence layer are
-included in the completed phases, but catalogue content and its existing static
-images are not migrated until Phase 6. There are no API resources.
+The catalogue schema, administration interface, media persistence layer, and public
+read-only catalogue API are included in the completed phases. Catalogue content and
+its existing static images are not migrated until Phase 6.
+
+## Public catalogue API
+
+The API uses Django REST Framework 3.18.1 and exposes these public, read-only routes:
+
+- `GET /api/v1/products/`
+- `GET /api/v1/products/<slug>/`
+- `GET /api/v1/collections/`
+- `GET /api/v1/collections/<slug>/`
+
+Only published products and collections are visible. Only active variants are
+returned; active out-of-stock variants remain visible with their stock status. The
+normal local database is currently empty until Phase 6, so the list routes return
+`[]` until catalogue data is migrated. The Next.js frontend remains static until
+Phase 7. CORS is not configured in this phase. Phase 6 migration is next, followed
+later by Phase 7 frontend integration.
 
 ## Local setup (PowerShell)
 
