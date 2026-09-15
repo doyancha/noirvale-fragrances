@@ -21,6 +21,25 @@ The catalogue schema, administration interface, media persistence layer, and pub
 read-only catalogue API are included in the completed phases. Catalogue content and
 its existing static images are not migrated until Phase 6.
 
+## Phase 6 catalogue bootstrap
+
+The Phase 6 bootstrap snapshot is stored in
+`apps/catalog/import_data/noirvale_catalog.json` and is guarded by the SHA-256 of
+`src/data/products.ts`. Run validation without side effects with:
+
+```powershell
+python manage.py import_noirvale_catalog --dry-run
+```
+
+After configuring the server-side `CLOUDINARY_URL`, run
+`python manage.py import_noirvale_catalog` to import the 12 Products, 25 variants,
+6 canonical Collections, 18 memberships, 12 deduplicated ProductImages, and 6
+CollectionImages. The command uses deterministic bootstrap media identities,
+detects conflicts instead of overwriting Django Admin edits, and is safe to rerun
+after an interrupted media upload. It is bootstrap tooling, not an ongoing Admin
+synchronization engine. Phase 7 frontend integration has not started; the Next.js
+storefront remains static.
+
 ## Public catalogue API
 
 The API uses Django REST Framework 3.18.1 and exposes these public, read-only routes:
