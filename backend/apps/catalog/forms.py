@@ -1,6 +1,6 @@
 from django import forms
 
-from .media import MediaProviderError, apply_upload_metadata, upload_image, validate_image_upload
+from .media import validate_image_upload
 from .models import CollectionImage, Product, ProductImage
 
 
@@ -57,18 +57,17 @@ class MediaUploadMixin:
         if uploaded_file:
             try:
                 validate_image_upload(uploaded_file)
-                self._upload_response = upload_image(
-                    uploaded_file,
-                    self.instance.cloudinary_public_id or self.instance.default_cloudinary_public_id,
-                )
-            except (ValueError, MediaProviderError) as exc:
+                self._pending_upload = uploaded_file
+            except ValueError as exc:
                 self.add_error("upload", str(exc))
         return cleaned_data
 
     def save(self, commit=True):
+        was_new = not self.instance.pk
         instance = super().save(commit=False)
-        if getattr(self, "_upload_response", None):
-            apply_upload_metadata(instance, self._upload_response)
+        if getattr(self, "_pending_upload", None):
+            instance._pending_upload = self._pending_upload
+            instance._pending_media_is_new = was_new
         if commit:
             instance.save()
         return instance

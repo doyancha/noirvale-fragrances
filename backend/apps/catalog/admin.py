@@ -2,9 +2,11 @@ from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.forms.models import BaseInlineFormSet
+from django.shortcuts import redirect
 from django.utils.html import format_html
 
 from .forms import CollectionImageAdminForm, ProductAdminForm, ProductImageAdminForm
+from .media import MediaProviderError, persist_uploaded_media
 from .models import Collection, CollectionImage, CollectionProduct, Product, ProductImage, ProductVariant
 
 
@@ -22,8 +24,34 @@ class PublicCollectionMembershipFormSet(BaseInlineFormSet):
                 seen.add(collection.pk)
 
 
+class MediaLifecycleAdminMixin:
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        try:
+            return super().changeform_view(request, object_id, form_url, extra_context)
+        except MediaProviderError:
+            self.message_user(
+                request,
+                "Media storage failed; no database changes were saved.",
+                messages.ERROR,
+            )
+            return redirect(request.path)
+
+    def _persist_pending_media(self, instances):
+        for instance in instances:
+            uploaded_file = getattr(instance, "_pending_upload", None)
+            if uploaded_file:
+                persist_uploaded_media(instance, uploaded_file)
+                del instance._pending_upload
+                if hasattr(instance, "_pending_media_is_new"):
+                    del instance._pending_media_is_new
+
+    def save_formset(self, request, form, formset, change):
+        super().save_formset(request, form, formset, change)
+        self._persist_pending_media(inline_form.instance for inline_form in formset.forms)
+
+
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(MediaLifecycleAdminMixin, admin.ModelAdmin):
     form = ProductAdminForm
     list_display = (
         "name",
@@ -297,7 +325,7 @@ class CollectionImageInline(admin.StackedInline):
 
 
 @admin.register(Collection)
-class CollectionAdmin(admin.ModelAdmin):
+class CollectionAdmin(MediaLifecycleAdminMixin, admin.ModelAdmin):
     list_display = ("name", "slug", "is_published", "product_count", "sort_order", "updated_at")
     list_editable = ("is_published", "sort_order")
     list_filter = ("is_published",)
@@ -332,7 +360,7 @@ class CollectionProductAdmin(admin.ModelAdmin):
     list_per_page = 50
 
 
-class ProductImageAdmin(admin.ModelAdmin):
+class ProductImageAdmin(MediaLifecycleAdminMixin, admin.ModelAdmin):
     form = ProductImageAdminForm
     list_display = ("preview", "product", "role", "format", "dimensions", "byte_size", "sort_order", "updated_at")
     list_filter = ("role", "format")
@@ -380,6 +408,10 @@ class ProductImageAdmin(admin.ModelAdmin):
         kwargs["fields"] = ("product", "role", "alt_text", "sort_order")
         return super().get_form(request, obj, change=change, **kwargs)
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        self._persist_pending_media((obj,))
+
     @admin.display(description="Preview")
     def preview(self, obj):
         if not obj.secure_url:
@@ -397,7 +429,7 @@ class ProductImageAdmin(admin.ModelAdmin):
         return f"{obj.width} × {obj.height}"
 
 
-class CollectionImageAdmin(admin.ModelAdmin):
+class CollectionImageAdmin(MediaLifecycleAdminMixin, admin.ModelAdmin):
     form = CollectionImageAdminForm
     list_display = ("preview", "collection", "format", "dimensions", "byte_size", "updated_at")
     list_filter = ("format",)
@@ -444,6 +476,10 @@ class CollectionImageAdmin(admin.ModelAdmin):
     def get_form(self, request, obj=None, change=False, **kwargs):
         kwargs["fields"] = ("collection", "alt_text")
         return super().get_form(request, obj, change=change, **kwargs)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        self._persist_pending_media((obj,))
 
     @admin.display(description="Preview")
     def preview(self, obj):

@@ -3,6 +3,7 @@
 import logging
 import os
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 import cloudinary
 from cloudinary import uploader
@@ -23,7 +24,15 @@ def _configure_cloudinary():
     cloudinary_url = os.environ.get("CLOUDINARY_URL", "").strip()
     if not cloudinary_url:
         raise MediaProviderError("Cloudinary media storage is not configured.")
-    cloudinary.config(cloudinary_url=cloudinary_url, secure=True)
+    parsed = urlparse(cloudinary_url)
+    if parsed.scheme != "cloudinary" or not parsed.hostname or not parsed.username or not parsed.password:
+        raise MediaProviderError("Cloudinary media storage configuration is invalid.")
+    cloudinary.config(
+        cloud_name=parsed.hostname,
+        api_key=unquote(parsed.username),
+        api_secret=unquote(parsed.password),
+        secure=True,
+    )
 
 
 def _read_header(uploaded_file):
@@ -76,6 +85,39 @@ def upload_image(uploaded_file, public_id):
     if not str(response.get("secure_url", "")).startswith("https://"):
         raise MediaProviderError("Cloudinary returned an insecure media URL.")
     return response
+
+
+def persist_uploaded_media(instance, uploaded_file):
+    """Upload a pending file and persist its provider metadata at save stage."""
+    public_id = instance.cloudinary_public_id or instance.default_cloudinary_public_id
+    response = upload_image(uploaded_file, public_id)
+    try:
+        apply_upload_metadata(instance, response)
+        instance.save(
+            update_fields=[
+                "cloudinary_public_id",
+                "secure_url",
+                "asset_id",
+                "format",
+                "width",
+                "height",
+                "byte_size",
+                "cloudinary_version",
+                "updated_at",
+            ]
+        )
+    except Exception:
+        if getattr(instance, "_pending_media_is_new", False):
+            try:
+                destroy_image(public_id)
+            except MediaProviderError:
+                logger.exception(
+                    "Cloudinary rollback cleanup failed for media id=%s public_id=%s",
+                    instance.pk,
+                    public_id,
+                )
+        raise
+    return instance
 
 
 def destroy_image(public_id):

@@ -2,15 +2,23 @@ import os
 from decimal import Decimal
 from unittest.mock import patch
 
+import cloudinary
 from django.contrib import admin
+from django.contrib.messages import get_messages
 from django.db import IntegrityError, transaction
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
-from apps.catalog.admin import ProductImageInline
+from apps.catalog.admin import (
+    CollectionImageInline,
+    CollectionMembershipInline,
+    ProductImageInline,
+    ProductVariantInline,
+    PublicCollectionInline,
+)
 from apps.catalog.forms import CollectionImageAdminForm, ProductImageAdminForm
-from apps.catalog.media import MediaProviderError, destroy_image, schedule_image_cleanup
+from apps.catalog.media import MediaProviderError, _configure_cloudinary, destroy_image, persist_uploaded_media
 from apps.catalog.models import Collection, CollectionImage, Product, ProductImage
 
 
@@ -56,6 +64,7 @@ class MediaTestCase(TestCase):
         self.cloudinary_env.start()
         self.request = RequestFactory().get("/admin/")
         self.request.user = self._create_superuser()
+        self.client.force_login(self.request.user)
 
     def tearDown(self):
         self.cloudinary_env.stop()
@@ -80,6 +89,7 @@ class MediaTestCase(TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
         saved = form.save()
+        persist_uploaded_media(saved, image)
 
         mock_upload.assert_called_once()
         call = mock_upload.call_args
@@ -102,6 +112,7 @@ class MediaTestCase(TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
         saved = form.save()
+        persist_uploaded_media(saved, image)
 
         mock_upload.assert_called_once()
         self.assertEqual(mock_upload.call_args.kwargs["public_id"], saved.cloudinary_public_id)
@@ -123,6 +134,7 @@ class MediaTestCase(TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
         saved = form.save()
+        persist_uploaded_media(saved, form.cleaned_data["upload"])
 
         self.assertEqual(saved.pk, image.pk)
         self.assertEqual(saved.storage_key, image.storage_key)
@@ -145,6 +157,7 @@ class MediaTestCase(TestCase):
 
         self.assertTrue(form.is_valid(), form.errors)
         saved = form.save()
+        persist_uploaded_media(saved, form.cleaned_data["upload"])
 
         self.assertEqual(saved.pk, image.pk)
         self.assertEqual(saved.storage_key, image.storage_key)
@@ -226,8 +239,7 @@ class MediaTestCase(TestCase):
             ("image.webp", WEBP_BYTES, "image/webp"),
         ):
             form = self.product_image_form(product, upload(name, content, content_type))
-            with patch("apps.catalog.forms.upload_image", return_value=cloudinary_response("test")):
-                self.assertTrue(form.is_valid(), form.errors)
+            self.assertTrue(form.is_valid(), form.errors)
 
     def test_invalid_and_oversized_uploads_are_rejected(self):
         product = self.make_product()
@@ -299,8 +311,12 @@ class MediaTestCase(TestCase):
         product = self.make_product()
         with patch.dict(os.environ, {}, clear=True):
             form = self.product_image_form(product, upload())
-            self.assertFalse(form.is_valid())
-            self.assertIn("not configured", str(form.errors).lower())
+            self.assertTrue(form.is_valid(), form.errors)
+            with self.assertRaises(MediaProviderError):
+                with transaction.atomic():
+                    saved = form.save()
+                    persist_uploaded_media(saved, form.cleaned_data["upload"])
+            self.assertFalse(ProductImage.objects.filter(product=product).exists())
         mock_upload.assert_not_called()
 
     @patch("apps.catalog.media.uploader.upload", side_effect=RuntimeError("provider unavailable"))
@@ -308,15 +324,268 @@ class MediaTestCase(TestCase):
         product = self.make_product()
         form = self.product_image_form(product, upload())
 
-        self.assertFalse(form.is_valid())
-        self.assertIn("upload failed", str(form.errors).lower())
-        self.assertNotIn("secret", str(form.errors).lower())
+        self.assertTrue(form.is_valid(), form.errors)
+        with self.assertRaises(MediaProviderError):
+            with transaction.atomic():
+                saved = form.save()
+                persist_uploaded_media(saved, form.cleaned_data["upload"])
+        self.assertFalse(ProductImage.objects.filter(product=product).exists())
         mock_upload.assert_called_once()
 
     @patch("apps.catalog.media.uploader.destroy")
     def test_destroy_accepts_provider_not_found(self, mock_destroy):
         mock_destroy.return_value = {"result": "not found"}
         self.assertEqual(destroy_image("noirvale/products/missing")["result"], "not found")
+
+    def test_cloudinary_url_configures_sdk_without_network(self):
+        with patch.dict(
+            os.environ,
+            {"CLOUDINARY_URL": "cloudinary://phase4-key:phase4-secret@phase4-cloud"},
+        ):
+            _configure_cloudinary()
+            configured = cloudinary.config()
+
+        self.assertEqual(configured.cloud_name, "phase4-cloud")
+        self.assertEqual(configured.api_key, "phase4-key")
+        self.assertTrue(configured.api_secret)
+
+    @patch("apps.catalog.media.uploader.destroy")
+    @patch("apps.catalog.media.uploader.upload")
+    def test_new_upload_db_failure_attempts_provider_cleanup(self, mock_upload, mock_destroy):
+        product = self.make_product()
+        image = ProductImage(product=product, role=ProductImage.GALLERY)
+        image._pending_media_is_new = True
+        mock_upload.return_value = cloudinary_response(image.default_cloudinary_public_id)
+        mock_destroy.return_value = {"result": "ok"}
+
+        with patch.object(image, "save", side_effect=RuntimeError("database write failed")):
+            with self.assertRaises(RuntimeError):
+                persist_uploaded_media(image, upload())
+
+        mock_destroy.assert_called_once_with(
+            image.default_cloudinary_public_id,
+            resource_type="image",
+            invalidate=True,
+        )
+
+    def product_change_data(self, product, *, slug=None, variant_ml=None, image_rows=None):
+        variant_prefix = ProductVariantInline(Product, admin.site).get_formset(
+            self.request, product
+        ).get_default_prefix()
+        collection_prefix = PublicCollectionInline(Product, admin.site).get_formset(
+            self.request, product
+        ).get_default_prefix()
+        image_prefix = ProductImageInline(Product, admin.site).get_formset(
+            self.request, product
+        ).get_default_prefix()
+        data = {
+            "name": product.name,
+            "slug": slug or product.slug,
+            "tagline": "",
+            "category": "",
+            "legacy_collection_label": "",
+            "scent_family": "",
+            "concentration": "",
+            "currency": "BDT",
+            "short_description": "",
+            "full_description": "",
+            "top_notes": "",
+            "heart_notes": "",
+            "base_notes": "",
+            "longevity": "",
+            "sillage": "",
+            "seasons": "",
+            "occasions": "",
+            "style_tags": "",
+            "in_stock": "on",
+            "is_published": "on",
+            "is_featured": "",
+            "is_bestseller": "",
+            "is_new": "",
+            "sort_order": "0",
+            f"{variant_prefix}-TOTAL_FORMS": "1" if variant_ml is not None else "0",
+            f"{variant_prefix}-INITIAL_FORMS": "0",
+            f"{variant_prefix}-MIN_NUM_FORMS": "0",
+            f"{variant_prefix}-MAX_NUM_FORMS": "1000",
+            f"{collection_prefix}-TOTAL_FORMS": "0",
+            f"{collection_prefix}-INITIAL_FORMS": "0",
+            f"{collection_prefix}-MIN_NUM_FORMS": "0",
+            f"{collection_prefix}-MAX_NUM_FORMS": "1000",
+            f"{image_prefix}-TOTAL_FORMS": str(len(image_rows or [])),
+            f"{image_prefix}-INITIAL_FORMS": "0",
+            f"{image_prefix}-MIN_NUM_FORMS": "0",
+            f"{image_prefix}-MAX_NUM_FORMS": "1000",
+            "_save": "Save",
+        }
+        if variant_ml is not None:
+            data.update(
+                {
+                    f"{variant_prefix}-0-label": "50ml",
+                    f"{variant_prefix}-0-ml": str(variant_ml),
+                    f"{variant_prefix}-0-price": "100.00",
+                    f"{variant_prefix}-0-compare_at_price": "",
+                    f"{variant_prefix}-0-in_stock": "on",
+                    f"{variant_prefix}-0-is_active": "on",
+                    f"{variant_prefix}-0-sort_order": "0",
+                }
+            )
+        for index, row in enumerate(image_rows or []):
+            data.update(
+                {
+                    f"{image_prefix}-{index}-role": row.get("role", ProductImage.GALLERY),
+                    f"{image_prefix}-{index}-alt_text": row.get("alt_text", "Test image"),
+                    f"{image_prefix}-{index}-sort_order": str(index),
+                    f"{image_prefix}-{index}-upload": row["upload"],
+                }
+            )
+        return data
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_invalid_sibling_inline_does_not_call_uploader_or_persist_media(self, mock_upload):
+        product = self.make_product()
+        data = self.product_change_data(
+            product,
+            variant_ml=0,
+            image_rows=[{"role": ProductImage.PRIMARY, "upload": upload()}],
+        )
+
+        response = self.client.post(reverse("admin:catalog_product_change", args=[product.pk]), data)
+
+        self.assertEqual(response.status_code, 200)
+        mock_upload.assert_not_called()
+        self.assertFalse(ProductImage.objects.filter(product=product).exists())
+        self.assertFalse(product.variants.exists())
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_invalid_parent_does_not_call_uploader_or_persist_media(self, mock_upload):
+        product = self.make_product()
+        duplicate = self.make_product(slug="duplicate-product", name="Duplicate Product")
+        data = self.product_change_data(
+            product,
+            slug=duplicate.slug,
+            image_rows=[{"role": ProductImage.PRIMARY, "upload": upload()}],
+        )
+
+        response = self.client.post(reverse("admin:catalog_product_change", args=[product.pk]), data)
+
+        self.assertEqual(response.status_code, 200)
+        mock_upload.assert_not_called()
+        self.assertFalse(ProductImage.objects.filter(product=product).exists())
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_duplicate_primary_uploads_are_rejected_before_provider_mutation(self, mock_upload):
+        product = self.make_product()
+        data = self.product_change_data(
+            product,
+            image_rows=[
+                {"role": ProductImage.PRIMARY, "upload": upload("one.png")},
+                {"role": ProductImage.PRIMARY, "upload": upload("two.png")},
+            ],
+        )
+
+        response = self.client.post(reverse("admin:catalog_product_change", args=[product.pk]), data)
+
+        self.assertEqual(response.status_code, 200)
+        mock_upload.assert_not_called()
+        self.assertFalse(ProductImage.objects.filter(product=product).exists())
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_valid_product_admin_submission_uploads_and_persists_media(self, mock_upload):
+        product = self.make_product()
+
+        def response_for_upload(uploaded_file, **kwargs):
+            return cloudinary_response(kwargs["public_id"])
+
+        mock_upload.side_effect = response_for_upload
+        response = self.client.post(
+            reverse("admin:catalog_product_change", args=[product.pk]),
+            self.product_change_data(
+                product,
+                image_rows=[{"role": ProductImage.PRIMARY, "upload": upload()}],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        image = ProductImage.objects.get(product=product)
+        self.assertEqual(mock_upload.call_count, 1)
+        self.assertEqual(mock_upload.call_args.kwargs["public_id"], image.cloudinary_public_id)
+        self.assertTrue(mock_upload.call_args.kwargs["overwrite"])
+        self.assertTrue(mock_upload.call_args.kwargs["invalidate"])
+
+    @patch("apps.catalog.media.uploader.upload")
+    def test_valid_collection_admin_submission_uploads_cover(self, mock_upload):
+        collection = self.make_collection()
+        membership_prefix = CollectionMembershipInline(Collection, admin.site).get_formset(
+            self.request, collection
+        ).get_default_prefix()
+        image_prefix = CollectionImageInline(Collection, admin.site).get_formset(
+            self.request, collection
+        ).get_default_prefix()
+        mock_upload.side_effect = lambda uploaded_file, **kwargs: cloudinary_response(kwargs["public_id"])
+        response = self.client.post(
+            reverse("admin:catalog_collection_change", args=[collection.pk]),
+            {
+                "name": collection.name,
+                "slug": collection.slug,
+                "description": "",
+                "is_published": "on",
+                "sort_order": "0",
+                f"{membership_prefix}-TOTAL_FORMS": "0",
+                f"{membership_prefix}-INITIAL_FORMS": "0",
+                f"{membership_prefix}-MIN_NUM_FORMS": "0",
+                f"{membership_prefix}-MAX_NUM_FORMS": "1000",
+                f"{image_prefix}-TOTAL_FORMS": "1",
+                f"{image_prefix}-INITIAL_FORMS": "0",
+                f"{image_prefix}-MIN_NUM_FORMS": "0",
+                f"{image_prefix}-MAX_NUM_FORMS": "1",
+                f"{image_prefix}-0-alt_text": "Cover",
+                f"{image_prefix}-0-upload": upload(),
+                "_save": "Save",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        image = CollectionImage.objects.get(collection=collection)
+        self.assertEqual(mock_upload.call_count, 1)
+        self.assertEqual(mock_upload.call_args.kwargs["public_id"], image.cloudinary_public_id)
+
+    @patch("apps.catalog.media.uploader.upload", side_effect=RuntimeError("provider secret text"))
+    def test_inline_provider_failure_returns_controlled_redirect_without_partial_state(self, mock_upload):
+        product = self.make_product()
+        response = self.client.post(
+            reverse("admin:catalog_product_change", args=[product.pk]),
+            self.product_change_data(
+                product,
+                image_rows=[{"role": ProductImage.PRIMARY, "upload": upload()}],
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ProductImage.objects.filter(product=product).exists())
+        self.assertNotIn("provider secret text", response.content.decode())
+        messages = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("Media storage failed" in str(message) for message in messages))
+        mock_upload.assert_called_once()
+
+    @patch("apps.catalog.media.uploader.upload", side_effect=RuntimeError("provider secret text"))
+    def test_standalone_provider_failure_returns_controlled_redirect(self, mock_upload):
+        product = self.make_product()
+        response = self.client.post(
+            reverse("admin:catalog_productimage_add"),
+            {
+                "product": str(product.pk),
+                "role": ProductImage.GALLERY,
+                "alt_text": "Test",
+                "sort_order": "0",
+                "upload": upload(),
+                "_save": "Save",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ProductImage.objects.filter(product=product).exists())
+        self.assertNotIn("provider secret text", response.content.decode())
+        mock_upload.assert_called_once()
 
     def test_admin_media_pages_and_safe_previews_work(self):
         self.client.force_login(self.request.user)
