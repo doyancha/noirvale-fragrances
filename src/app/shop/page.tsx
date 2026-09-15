@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
-import { products } from '@/data/products';
 import ShopContent from '@/components/shop/ShopContent';
 import { siteConfig } from '@/lib/config';
+import { getStorefrontProducts } from '@/lib/catalog/server';
+
+export const dynamic = 'force-dynamic';
+
 
 export const metadata: Metadata = {
   title: 'Shop All Fragrances',
@@ -9,7 +12,8 @@ export const metadata: Metadata = {
     'Explore our complete collection of sophisticated men\'s fragrances. From bold ouds to fresh aquatics — find your signature scent at NOIRVALE.',
 };
 
-export default function ShopPage() {
+export default async function ShopPage() {
+  const products = await getStorefrontProducts();
   return (
     <main className="min-h-screen bg-[#0a0a0a] pb-16 pt-10 text-[#faf7f4] md:pt-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

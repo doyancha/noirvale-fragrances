@@ -1,10 +1,9 @@
 import Image from 'next/image';
-import { getFeaturedProducts } from '@/data/products';
 import { Button } from '@/components/ui/Button';
+import type { Product } from '@/lib/types';
 
-export function SignatureFeature() {
-  const products = getFeaturedProducts();
-  const heroProduct = products.find(p => p.name.includes('Imperial Oud')) || products[0];
+export function SignatureFeature({ products, signatureProduct }: { products: Product[]; signatureProduct?: Product }) {
+  const heroProduct = signatureProduct || products.find(p => p.name.includes('Imperial Oud')) || products[0];
 
   if (!heroProduct) return null;
 
@@ -13,13 +12,17 @@ export function SignatureFeature() {
       <div className="flex flex-col lg:flex-row">
         {/* Left: Image */}
         <div className="w-full lg:w-[60%] relative aspect-square lg:aspect-auto lg:min-h-[800px]">
-          <Image
-            src={heroProduct.images.main || '/noirvale/products/noir-reserve/main.webp'}
-            alt={heroProduct.name}
-            fill
-            sizes="(max-width: 1024px) 100vw, 60vw"
-            className="object-cover object-center"
-          />
+          {heroProduct.images.main ? (
+            <Image
+              src={heroProduct.images.main}
+              alt={heroProduct.name}
+              fill
+              sizes="(max-width: 1024px) 100vw, 60vw"
+              className="object-cover object-center"
+            />
+          ) : (
+            <div className="h-full w-full bg-[#1a1a1a]" aria-label={`${heroProduct.name} image unavailable`} />
+          )}
         </div>
 
         {/* Right: Content */}

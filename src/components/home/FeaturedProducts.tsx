@@ -1,9 +1,9 @@
-import { getFeaturedProducts } from '@/data/products';
 import ProductCard from '@/components/product/ProductCard';
 import { Button } from '@/components/ui/Button';
+import type { Product } from '@/lib/types';
 
-export function FeaturedProducts() {
-  const featuredProducts = getFeaturedProducts();
+export function FeaturedProducts({ products }: { products: Product[] }) {
+  const featuredProducts = products.filter((product) => product.isFeatured);
 
   return (
     <section className="bg-noir-950 py-20 lg:py-32">

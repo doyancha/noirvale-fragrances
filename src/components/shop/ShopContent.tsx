@@ -2,7 +2,6 @@
 
 import { useState, useMemo, Suspense } from 'react';
 import type { Product } from '@/lib/types';
-import { getAllScentFamilies, getAllOccasions, getAllConcentrations } from '@/data/products';
 import ProductCard from '@/components/product/ProductCard';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -21,9 +20,9 @@ function ShopContentInner({ initialProducts }: { initialProducts: Product[] }) {
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  const families = getAllScentFamilies();
-  const occasions = getAllOccasions();
-  const concentrations = getAllConcentrations();
+  const families = Array.from(new Set(initialProducts.map((product) => product.scentFamily))).sort();
+  const occasions = Array.from(new Set(initialProducts.flatMap((product) => product.occasions))).sort();
+  const concentrations = Array.from(new Set(initialProducts.map((product) => product.concentration))).sort();
 
   const updateParam = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());

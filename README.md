@@ -53,6 +53,24 @@ Catalogue data is stored in:
 
 Add or update fragrances there. Each product maps to its own route and WhatsApp order flow.
 
+## Phase 7 catalogue sources
+
+The storefront has an explicit dual-source catalogue boundary under `src/lib/catalog/`:
+
+- `static` is the default and uses the existing `src/data/products.ts` catalogue. It does not require Django.
+- `api` fetches the Django REST API from server-side Next.js code and requires both API environment variables below.
+
+For local API integration only, configure:
+
+```text
+NOIRVALE_CATALOG_SOURCE=api
+NOIRVALE_CATALOG_API_BASE_URL=http://127.0.0.1:8000/api/v1
+```
+
+`NOIRVALE_CATALOG_SOURCE` may be `static` or `api`; an omitted value means `static`. The API base URL is server-only and must not use a `NEXT_PUBLIC_` prefix. API mode fails visibly when Django is unavailable or returns invalid data; it does not silently fall back to static data. Django is fetched from Server Components, so browser CORS is not required.
+
+API mode renders the migrated Cloudinary HTTPS delivery URLs. Static mode remains the safety source until the later Phase 15 production cutover. Phase 7 does not configure Railway or Vercel environment variables. Phase 8 is the next authorized phase.
+
 ## Images
 
 Local product imagery lives in:

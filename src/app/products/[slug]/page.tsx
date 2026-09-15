@@ -1,17 +1,20 @@
-import { products, getProductBySlug, getRelatedProducts } from '@/data/products';
 import { siteConfig } from '@/lib/config';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import ProductDetail from '@/components/product/ProductDetail';
 import ProductCard from '@/components/product/ProductCard';
+import { getRelatedProducts } from '@/lib/catalog/static';
+import { getStorefrontProductBySlug, getStorefrontProducts } from '@/lib/catalog/server';
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export const dynamicParams = false;
+export const dynamicParams = true;
+export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
+  const products = await getStorefrontProducts();
   return products.map((product) => ({
     slug: product.slug,
   }));
@@ -19,7 +22,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getStorefrontProductBySlug(slug);
 
   if (!product) {
     return { title: 'Product Not Found' };
@@ -54,19 +57,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getStorefrontProductBySlug(slug);
 
   if (!product) {
     notFound();
   }
 
-  const relatedProducts = getRelatedProducts(product, 4);
+  const relatedProducts = getRelatedProducts(product, await getStorefrontProducts(), 4);
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    image: [product.images.main, ...product.images.gallery],
+    image: [product.images.main, ...product.images.gallery].filter(Boolean),
     description: product.shortDescription,
     brand: {
       '@type': 'Brand',

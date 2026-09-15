@@ -83,14 +83,18 @@ export default function ProductDetail({ product, siteUrl }: ProductDetailProps) 
           {/* Left — Gallery */}
           <div className="space-y-4">
             <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#1a1a1a]">
-              <Image
-                src={mainImage}
-                alt={product.name}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-              />
+              {mainImage ? (
+                <Image
+                  src={mainImage}
+                  alt={product.name}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="h-full w-full bg-[#1a1a1a]" aria-label={`${product.name} image unavailable`} />
+              )}
             </div>
             {product.images.gallery.length > 1 && (
               <div className="flex gap-3">

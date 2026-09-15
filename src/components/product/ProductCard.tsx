@@ -34,13 +34,17 @@ export default function ProductCard({ product }: ProductCardProps) {
       className="group flex flex-col gap-4 border border-transparent p-2 transition-all duration-300 hover:border-[#c9a96e]/20"
     >
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#1a1a1a]">
-        <Image
-          src={product.images.main}
-          alt={product.name}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {product.images.main ? (
+          <Image
+            src={product.images.main}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="h-full w-full bg-[#1a1a1a]" aria-label={`${product.name} image unavailable`} />
+        )}
 
         {/* Overlay */}
         <div className="absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/20" />

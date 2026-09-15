@@ -9,8 +9,19 @@ import { EditorialBanner } from '@/components/home/EditorialBanner';
 import { FAQPreview } from '@/components/home/FAQPreview';
 import { FinalCTA } from '@/components/home/FinalCTA';
 import { siteConfig } from '@/lib/config';
+import { getStorefrontCollections, getStorefrontProductBySlug, getStorefrontProducts } from '@/lib/catalog/server';
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic';
+
+
+export default async function HomePage() {
+  const [products, collections] = await Promise.all([
+    getStorefrontProducts(),
+    getStorefrontCollections(),
+  ]);
+  const signatureProduct = await getStorefrontProductBySlug(
+    products.find((product) => product.name.includes('Imperial Oud'))?.slug ?? 'imperial-oud'
+  );
   const hasSiteUrl = Boolean(siteConfig.seo.siteUrl);
   const contactPoint =
     siteConfig.contact.email || siteConfig.contact.phone || siteConfig.contact.whatsapp
@@ -26,10 +37,10 @@ export default function HomePage() {
     <>
       <main>
         <Hero />
-        <FeaturedProducts />
-        <CollectionShowcase />
-        <BestSellers />
-        <SignatureFeature />
+        <FeaturedProducts products={products} />
+        <CollectionShowcase collections={collections} />
+        <BestSellers products={products} />
+        <SignatureFeature products={products} signatureProduct={signatureProduct} />
         <ShopByOccasion />
         <WhyNoirvale />
         <EditorialBanner />

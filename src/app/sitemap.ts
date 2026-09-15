@@ -1,8 +1,15 @@
 import type { MetadataRoute } from 'next';
-import { products, collections } from '@/data/products';
 import { siteConfig } from '@/lib/config';
+import { getStorefrontCollections, getStorefrontProducts } from '@/lib/catalog/server';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const dynamic = 'force-dynamic';
+
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [products, collections] = await Promise.all([
+    getStorefrontProducts(),
+    getStorefrontCollections(),
+  ]);
   const baseUrl = siteConfig.seo.siteUrl;
 
   const staticPages: MetadataRoute.Sitemap = [

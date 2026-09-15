@@ -2,23 +2,25 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { collections, getCollectionBySlug, getProductsForCollection } from '@/data/products';
 import ProductCard from '@/components/product/ProductCard';
 import { siteConfig } from '@/lib/config';
+import { getStorefrontCollectionBySlug, getStorefrontCollectionDetail, getStorefrontCollections } from '@/lib/catalog/server';
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export const dynamicParams = false;
+export const dynamicParams = true;
+export const dynamic = 'force-dynamic';
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const collections = await getStorefrontCollections();
   return collections.map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const collection = getCollectionBySlug(slug);
+  const collection = await getStorefrontCollectionBySlug(slug);
   if (!collection) return { title: 'Collection Not Found' };
   return {
     title: `${collection.name} Collection`,
@@ -42,21 +44,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CollectionPage({ params }: Props) {
   const { slug } = await params;
-  const collection = getCollectionBySlug(slug);
-  if (!collection) notFound();
-
-  const products = getProductsForCollection(collection.slug);
+  const detail = await getStorefrontCollectionDetail(slug);
+  if (!detail) notFound();
+  const { collection, products } = detail;
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] pb-16 text-[#faf7f4]">
       <section className="relative flex h-[40vh] min-h-[400px] items-center justify-center">
-        <Image
-          src={collection.image}
-          alt={collection.name}
-          fill
-          className="object-cover opacity-50"
-          priority
-        />
+        {collection.image ? (
+          <Image
+            src={collection.image}
+            alt={collection.name}
+            fill
+            className="object-cover opacity-50"
+            priority
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[#1a1a1a]" aria-label={`${collection.name} image unavailable`} />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
         <div className="relative z-10 mx-auto mt-16 max-w-3xl px-4 text-center">
           <Link

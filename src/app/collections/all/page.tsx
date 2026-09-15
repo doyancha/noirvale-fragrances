@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { collections, getProductsForCollection } from '@/data/products';
+import { getStorefrontCollectionDetail, getStorefrontCollections } from '@/lib/catalog/server';
+
+export const dynamic = 'force-dynamic';
+
 
 export const metadata: Metadata = {
   title: 'Our Collections',
@@ -13,7 +16,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CollectionsAllPage() {
+export default async function CollectionsAllPage() {
+  const collections = await getStorefrontCollections();
+  const details = await Promise.all(collections.map((collection) => getStorefrontCollectionDetail(collection.slug)));
   return (
     <main className="min-h-screen bg-[#0a0a0a] pb-16 pt-10 text-[#faf7f4] md:pt-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -29,8 +34,8 @@ export default function CollectionsAllPage() {
         </header>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-          {collections.map((collection) => {
-            const count = getProductsForCollection(collection.slug).length;
+          {collections.map((collection, index) => {
+            const count = details[index]?.products.length ?? 0;
             return (
               <Link
                 key={collection.slug}
@@ -38,13 +43,17 @@ export default function CollectionsAllPage() {
                 className="group relative block h-[400px] overflow-hidden bg-[#111111]"
               >
                 <div className="absolute inset-0">
-                <Image
-                  src={collection.image}
-                  alt={collection.name}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover opacity-60 transition-transform duration-700 group-hover:scale-105 group-hover:opacity-80"
-                />
+                {collection.image ? (
+                  <Image
+                    src={collection.image}
+                    alt={collection.name}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover opacity-60 transition-transform duration-700 group-hover:scale-105 group-hover:opacity-80"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-[#1a1a1a]" aria-label={`${collection.name} image unavailable`} />
+                )}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent opacity-80" />
                 </div>
                 <div className="absolute inset-0 flex flex-col justify-end p-6">

@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { collections } from '@/data/products';
+import type { CollectionInfo } from '@/lib/types';
 
-export function CollectionShowcase() {
+export function CollectionShowcase({ collections }: { collections: CollectionInfo[] }) {
   return (
     <section className="bg-noir-950 py-20 lg:py-32">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">

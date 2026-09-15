@@ -1,8 +1,8 @@
-import { getBestSellers } from '@/data/products';
 import ProductCard from '@/components/product/ProductCard';
+import type { Product } from '@/lib/types';
 
-export function BestSellers() {
-  const bestSellers = getBestSellers();
+export function BestSellers({ products }: { products: Product[] }) {
+  const bestSellers = products.filter((product) => product.isBestseller);
 
   return (
     <section className="bg-noir-900 py-20 lg:py-32">
