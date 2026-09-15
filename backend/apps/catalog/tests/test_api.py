@@ -89,6 +89,17 @@ class CatalogAPITests(TestCase):
         self.image(product, role=ProductImage.GALLERY)
         self.assertIsNone(self.client.get("/api/v1/products/product/").json()["primary_image"])
 
+    def test_published_collection_without_image_returns_null_image(self):
+        Collection.objects.create(slug="no-cover", name="No Cover")
+
+        list_response = self.client.get("/api/v1/collections/")
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(list_response.json(), [{"slug": "no-cover", "name": "No Cover", "description": "", "image": None}])
+
+        detail_response = self.client.get("/api/v1/collections/no-cover/")
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertEqual(detail_response.json()["image"], None)
+
     def test_collection_publication_image_membership_order_and_legacy_label(self):
         first = self.product("first", sort_order=10, legacy_collection_label="Ignored")
         second = self.product("second", sort_order=1)
